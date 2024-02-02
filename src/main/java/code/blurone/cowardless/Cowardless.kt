@@ -9,6 +9,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.util.Mth
 import net.minecraft.world.damagesource.*
@@ -265,7 +266,8 @@ class Cowardless : JavaPlugin(), Listener {
         val level: ServerLevel = craftPlayer.handle.serverLevel()
         val profile = GameProfile(UUID.randomUUID(), p.name)
         if (p.profile.properties["textures"].toList().isNotEmpty()) profile.properties.put("textures", p.profile.properties["textures"].toList()[0])
-        val npc = ServerPlayer(server, level, profile, ClientInformation.createDefault())
+        val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile)
+        val npc = ServerPlayer(server, level, profile, cookie.clientInformation)
         // Set position to player position
         npc.setPos(p.location.x, p.location.y, p.location.z)
         npc.xRot = p.location.pitch; npc.yRot = p.location.yaw
@@ -290,7 +292,7 @@ class Cowardless : JavaPlugin(), Listener {
         npc.bukkitEntity.inventory.setItemInOffHand(p.inventory.itemInOffHand)
         npc.bukkitPickUpLoot = false
         // Give NPC fake connection
-        npc.connection = ServerGamePacketListenerImpl(server, Connection(PacketFlow.SERVERBOUND), npc)
+        npc.connection = ServerGamePacketListenerImpl(server, Connection(PacketFlow.SERVERBOUND), npc, cookie)
         // Identifier
         npc.bukkitEntity.setMetadata("NPCoward", FixedMetadataValue(this, true))
 
