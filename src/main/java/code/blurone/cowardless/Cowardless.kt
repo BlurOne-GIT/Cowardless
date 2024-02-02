@@ -6,7 +6,6 @@ import net.minecraft.network.Connection
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
@@ -100,7 +99,7 @@ class Cowardless : JavaPlugin(), Listener {
             That gives us 0.52x-0.2, it's an approximation, but it works
             Knockback caps at 20.2 blocks which is 4.04 in scale, since it's always the same, we can just use whole value
              */
-            // Ok if you're reading this, the approximation wasn't enough and I had to use a lookup table with the values I got from multiplying the exact distances by 0.2...
+            // Ok if you're reading this, the approximation wasn't enough for someone with OCD and I had to use a lookup table with the values I got from multiplying the exact distances by 0.2...
             val km: Double = when ((event.damager as Player).inventory.itemInMainHand.getEnchantmentLevel(Enchantment.KNOCKBACK)) //if (x < 8) 0.52*x-0.1 else 3.8556418588
             {
                 0 -> 0.0
