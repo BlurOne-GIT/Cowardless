@@ -1,6 +1,6 @@
 name: Cowardless
 version: '${project.version}'
 main: code.blurone.cowardless.Cowardless
-api-version: 1.19
-authors: [ BlurOne ]
+api-version: 1.20
+authors: [ "BlurOne!" ]
 description: No more players disconnecting mid pvp, in lava or drowning!
