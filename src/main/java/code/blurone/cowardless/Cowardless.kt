@@ -6,6 +6,7 @@ import net.minecraft.network.Connection
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.ServerGamePacketListenerImpl
@@ -264,7 +265,7 @@ class Cowardless : JavaPlugin(), Listener {
         val level: ServerLevel = craftPlayer.handle.serverLevel()
         val profile = GameProfile(UUID.randomUUID(), p.name)
         if (p.profile.properties["textures"].toList().isNotEmpty()) profile.properties.put("textures", p.profile.properties["textures"].toList()[0])
-        val npc = ServerPlayer(server, level, profile)
+        val npc = ServerPlayer(server, level, profile, ClientInformation.createDefault())
         // Set position to player position
         npc.setPos(p.location.x, p.location.y, p.location.z)
         npc.xRot = p.location.pitch; npc.yRot = p.location.yaw
