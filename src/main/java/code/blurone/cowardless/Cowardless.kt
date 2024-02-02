@@ -334,7 +334,7 @@ class Cowardless : JavaPlugin(), Listener {
         {
             val ps: ServerGamePacketListenerImpl = (player as CraftPlayer).handle.connection
             ps.send(ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, npc))
-            ps.send(ClientboundAddPlayerPacket(npc))
+            ps.send(ClientboundAddEntityPacket(npc)) //ps.send(ClientboundAddPlayerPacket(npc))
             ps.send(ClientboundRotateHeadPacket(npc, ((npc.yRot%360)*256/360).toInt().toByte()))
             ps.send(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
             ps.send(ClientboundSetEquipmentPacket(npc.id, itemList))
