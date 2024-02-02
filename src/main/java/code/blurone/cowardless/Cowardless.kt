@@ -252,7 +252,7 @@ class Cowardless : JavaPlugin(), Listener {
         for (npc: ServerPlayer in fakePlayerByName.values)
         {
             ps.send(ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, npc))
-            ps.send(ClientboundAddPlayerPacket(npc))
+            ps.send(ClientboundAddEntityPacket(npc)) //ps.send(ClientboundAddPlayerPacket(npc))
         }
     }
 
