@@ -15,10 +15,10 @@ import net.minecraft.world.entity.EquipmentSlot
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.craftbukkit.v1_20_R1.CraftWorld
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftEntity
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer
-import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack
+import org.bukkit.craftbukkit.v1_20_R3.CraftWorld
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
+import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
