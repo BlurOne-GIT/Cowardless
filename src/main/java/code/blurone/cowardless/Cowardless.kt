@@ -1,6 +1,7 @@
 package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
+import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.core.Holder
 import net.minecraft.network.Connection
 import net.minecraft.network.protocol.PacketFlow
@@ -291,7 +292,7 @@ class Cowardless : JavaPlugin(), Listener {
         npc.bukkitEntity.inventory.setItemInOffHand(p.inventory.itemInOffHand)
         npc.bukkitPickUpLoot = false
         // Give NPC fake connection
-        npc.connection = ServerGamePacketListenerImpl(server, Connection(PacketFlow.SERVERBOUND), npc, cookie)
+        npc.connection = ServerGamePacketListenerImpl(server, FakeConnection(PacketFlow.CLIENTBOUND), npc, cookie)
         // Identifier
         npc.bukkitEntity.setMetadata("NPCoward", FixedMetadataValue(this, true))
 
