@@ -1,6 +1,0 @@
-name: Cowardless
-version: '1.0-SNAPSHOT'
-main: code.blurone.cowardless.Cowardless
-api-version: 1.20
-authors: [ "BlurOne!" ]
-description: No more players disconnecting mid pvp, in lava or drowning!

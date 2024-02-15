@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/cowardless.iml" filepath="$PROJECT_DIR$/cowardless.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Cowardless.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Cowardless.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Cowardless.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Cowardless.test.iml" />
     </modules>
   </component>
 </project>
