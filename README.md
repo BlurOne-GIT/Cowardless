@@ -8,8 +8,8 @@ Have you ever engaged in an intense PvP battle, only to have your opponent disco
 Introducing Cowardless, the ultimate plugin for Minecraft warriors. Say goodbye to cowardly opponents who vanish mid-fight. Here’s how it works:
 1. **Clone Activation:** When you’re in combat or constantly taking damage (think drowning or lava), Cowardless springs into action. If you attempt to disconnect, a clone takes your place on the server—a mere illusion for other players.
 2. **Transfer of Consequences:** But here’s the twist: Everything the clone experiences—position, health, inventory, even death—gets transferred back to you when you log back in.
-3. **Automatic Despawn:** Fear not! If spared and left unattended, the clone will eventually despawn, allowing you to enjoy the peacefulness of having disconected.
+3. **Automatic Despawn:** Fear not! If spared and left unattended, the clone will eventually despawn, allowing you to enjoy the peacefulness of having disconnected.
 
 ## The extra info
-In the `config.yml`, you can adjust how long a player is considered to be in combat, and how long a clone lasts before despwaning.
+In the `config.yml`, you can adjust how long a player is considered to be in combat, and how long a clone lasts before despawning.
 If you have any ideas or feature requests for the plugin, feel free to share them in the repository [repo's discussions](https://github.com/BlurOne-GIT/Cowardless/discussions).
