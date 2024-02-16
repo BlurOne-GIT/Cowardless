@@ -29,6 +29,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
+import org.bukkit.event.entity.CreatureSpawnEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
@@ -297,7 +298,8 @@ class Cowardless : JavaPlugin(), Listener {
         npc.bukkitEntity.setMetadata("NPCoward", FixedMetadataValue(this, true))
 
         // Add as player and entity
-        (p.world as CraftWorld).handle.entityManager.addNewEntity(npc)
+        (p.world as CraftWorld).handle.addFreshEntity(npc, CreatureSpawnEvent.SpawnReason.CUSTOM)
+        //(p.world as CraftWorld).handle.entityManager.addNewEntity(npc)
         (p.world as CraftWorld).handle.players().add(npc)
 
         addPlayerPackets(npc)
