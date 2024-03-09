@@ -262,52 +262,57 @@ class Cowardless : JavaPlugin(), Listener {
         }
     }
 
-    private fun spawnBody(p: Player): ServerPlayer
+    private fun spawnBody(player: Player): ServerPlayer
     {
         // Create NPC
-        val craftPlayer: CraftPlayer = p as CraftPlayer
-        val server: MinecraftServer = craftPlayer.handle.server
-        val level: ServerLevel = craftPlayer.handle.serverLevel()
-        val profile = GameProfile(UUID.randomUUID(), p.name)
-        if (p.profile.properties["textures"].toList().isNotEmpty()) profile.properties.put("textures", p.profile.properties["textures"].toList()[0])
+        val serverPlayer = (player as CraftPlayer).handle
+        val server = serverPlayer.server
+        val level = serverPlayer.serverLevel()
+        val profile = GameProfile(UUID.randomUUID(), player.name)
+        player.profile.properties["textures"].firstOrNull()?.let {
+            profile.properties.put("textures", it)
+        }
         val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile)
-        val npc = ServerPlayer(server, level, profile, cookie.clientInformation)
+        val serverNPC = ServerPlayer(server, level, profile, cookie.clientInformation)
+        val bukkitNPC = serverNPC.bukkitEntity
         // Set position to player position
-        npc.setPos(p.location.x, p.location.y, p.location.z)
-        npc.xRot = p.location.pitch; npc.yRot = p.location.yaw
-        npc.setYBodyRot(p.handle.yBodyRot)
+        serverNPC.setPos(player.location.x, player.location.y, player.location.z)
+        serverNPC.xRot = player.location.pitch; serverNPC.yRot = player.location.yaw
+        serverNPC.setYBodyRot(player.handle.yBodyRot)
         // Physics
-        npc.noPhysics = false
-        npc.isNoGravity = false
-        npc.onGround = false
-        npc.isInvulnerable = false
-        npc.spawnInvulnerableTime = 0
+        serverNPC.noPhysics = false
+        serverNPC.isNoGravity = false
+        serverNPC.onGround = false
+        serverNPC.isInvulnerable = false
+        serverNPC.spawnInvulnerableTime = 0
         // Give player attributes to NPC
-        npc.bukkitEntity.health = p.health
-        npc.remainingFireTicks = p.fireTicks
-        npc.activeEffects.putAll(p.handle.activeEffects)
-        npc.entityData.assignValues(p.handle.entityData.nonDefaultValues)
+        bukkitNPC.health = player.health
+        serverNPC.remainingFireTicks = player.fireTicks
+        serverNPC.activeEffects.putAll(player.handle.activeEffects)
+        serverNPC.entityData.assignValues(player.handle.entityData.nonDefaultValues)
         // Give player visual items to NPC
-        npc.bukkitEntity.inventory.helmet = p.inventory.helmet
-        npc.bukkitEntity.inventory.chestplate = p.inventory.chestplate
-        npc.bukkitEntity.inventory.leggings = p.inventory.leggings
-        npc.bukkitEntity.inventory.boots = p.inventory.boots
-        npc.bukkitEntity.inventory.setItemInMainHand(p.inventory.itemInMainHand)
-        npc.bukkitEntity.inventory.setItemInOffHand(p.inventory.itemInOffHand)
-        npc.bukkitPickUpLoot = false
+        bukkitNPC.inventory.let {
+            it.helmet = player.inventory.helmet
+            it.chestplate = player.inventory.chestplate
+            it.leggings = player.inventory.leggings
+            it.boots = player.inventory.boots
+            it.setItemInMainHand(player.inventory.itemInMainHand)
+            it.setItemInOffHand(player.inventory.itemInOffHand)
+        }
+        serverNPC.bukkitPickUpLoot = false
         // Give NPC fake connection
-        npc.connection = ServerGamePacketListenerImpl(server, FakeConnection(PacketFlow.CLIENTBOUND), npc, cookie)
+        serverNPC.connection = ServerGamePacketListenerImpl(server, FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
         // Identifier
-        npc.bukkitEntity.setMetadata("NPCoward", FixedMetadataValue(this, true))
+        bukkitNPC.setMetadata("NPCoward", FixedMetadataValue(this, true))
 
         // Add as player and entity
-        (p.world as CraftWorld).handle.addFreshEntity(npc, CreatureSpawnEvent.SpawnReason.CUSTOM)
+        level.addFreshEntity(serverNPC, CreatureSpawnEvent.SpawnReason.CUSTOM)
         //(p.world as CraftWorld).handle.entityManager.addNewEntity(npc)
-        (p.world as CraftWorld).handle.players().add(npc)
+        level.players().add(serverNPC)
 
-        addPlayerPackets(npc)
+        addPlayerPackets(serverNPC)
 
-        return npc
+        return serverNPC
     }
 
     private fun setDespawnTask(p: Player)
