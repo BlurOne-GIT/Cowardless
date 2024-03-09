@@ -1,6 +1,6 @@
 # Time in seconds a player will spawn an NPC if leaving after being hit
-pvpSecondsThreshold: 30
+pvp_seconds_threshold: 30
 # Time in seconds before the NPC despawns
-despawnSecondsThreshold: 30
+despawn_seconds_threshold: 30
 # If true, when being damaged, the despawn countdown will start over
-resetDespawnThreshold: true
+reset_despawn_threshold: true
