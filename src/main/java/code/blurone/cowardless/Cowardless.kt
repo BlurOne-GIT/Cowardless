@@ -48,6 +48,9 @@ class Cowardless : JavaPlugin(), Listener {
     private val fakePlayerByName: MutableMap<String, ServerPlayer> = HashMap()
     private val cowards: MutableMap<String, Player> = HashMap()
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = HashMap()
+    private val pvpSecondsThreshold = config.getLong("pvp_seconds_threshold", 30)
+    private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
+    private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
 
     override fun onEnable() {
         // Plugin startup logic
@@ -134,7 +137,7 @@ class Cowardless : JavaPlugin(), Listener {
         if (event.entityType != EntityType.PLAYER) return
         if (event.entity.hasMetadata("NPCoward"))
         {
-            if (config["resetDespawnThreshold"] as Boolean && (event.entity as Player).health != 0.0)
+            if (resetDespawnThreshold && (event.entity as Player).health != 0.0)
             {
                 // Reset despawn timer
                 despawnTaskTimers[event.entity.name]?.cancel()
@@ -154,7 +157,7 @@ class Cowardless : JavaPlugin(), Listener {
             DamageCause.FREEZE,
             DamageCause.HOT_FLOOR,
             DamageCause.LAVA,
-            DamageCause.SUFFOCATION -> LocalTime.now().plusSeconds(if (hurtByTimestamps[event.entity.name]?.isAfter(LocalTime.now().plusSeconds(2)) != true) 2 else (config["pvpSecondsThreshold"] as Int).toLong())
+            DamageCause.SUFFOCATION -> LocalTime.now().plusSeconds(if (hurtByTimestamps[event.entity.name]?.isAfter(LocalTime.now().plusSeconds(2)) != true) 2 else pvpSecondsThreshold)
 
             // Pvp damage
             DamageCause.ENTITY_ATTACK,
@@ -163,7 +166,7 @@ class Cowardless : JavaPlugin(), Listener {
             DamageCause.MAGIC,
             DamageCause.PROJECTILE,
             DamageCause.SONIC_BOOM,
-            DamageCause.THORNS -> LocalTime.now().plusSeconds((config["pvpSecondsThreshold"] as Int).toLong())
+            DamageCause.THORNS -> LocalTime.now().plusSeconds(pvpSecondsThreshold)
 
             else -> return
         }
@@ -319,7 +322,7 @@ class Cowardless : JavaPlugin(), Listener {
                     cowards.remove(p.name)
                 }
             }
-        }.runTaskLater(this, (config["despawnSecondsThreshold"] as Int).toLong() * 20)
+        }.runTaskLater(this, despawnSecondsThreshold * 20)
     }
 
     private fun addPlayerPackets(npc: ServerPlayer)
