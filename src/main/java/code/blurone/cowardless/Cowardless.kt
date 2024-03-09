@@ -1,13 +1,9 @@
 package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
-import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.core.Holder
-import net.minecraft.network.Connection
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.*
-import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ServerGamePacketListenerImpl
@@ -17,7 +13,6 @@ import net.minecraft.world.entity.EquipmentSlot
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.craftbukkit.v1_20_R3.CraftWorld
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
@@ -103,7 +98,7 @@ class Cowardless : JavaPlugin(), Listener {
             Then we subtract 2 blocks from the formula because they are already applied by default when running hurt()
             That gives us 0.52x-0.2, it's an approximation, but it works
             Knockback caps at 20.2 blocks which is 4.04 in scale, since it's always the same, we can just use whole value
-             */
+            */
             // Ok if you're reading this, the approximation wasn't enough for someone with OCD and I had to use a lookup table with the values I got from multiplying the exact distances by 0.2...
             val km: Double = when ((event.damager as Player).inventory.itemInMainHand.getEnchantmentLevel(Enchantment.KNOCKBACK)) //if (x < 8) 0.52*x-0.1 else 3.8556418588
             {
@@ -193,7 +188,7 @@ class Cowardless : JavaPlugin(), Listener {
             cowards.remove(event.entity.name)!!.let { player ->
                 // Drop player items
                 event.drops.clear()
-                event.drops.addAll(player.inventory.contents.toMutableList())
+                event.drops.addAll(player.inventory.contents.toList())
                 // Set player location to the npc location when joining again
                 player.setMetadata("Cowardead", FixedMetadataValue(this, it.bukkitEntity.location))
             }
