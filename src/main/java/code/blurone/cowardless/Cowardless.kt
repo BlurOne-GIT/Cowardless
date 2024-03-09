@@ -353,8 +353,11 @@ class Cowardless : JavaPlugin(), Listener {
     private fun removePlayerPackets(npc: ServerPlayer)
     {
         // Remove NPC as player and entity
-        (npc.bukkitEntity.world as CraftWorld).handle.players().remove(npc)
-        npc.remove(net.minecraft.world.entity.Entity.RemovalReason.DISCARDED)
+        //(npc.bukkitEntity.world as CraftWorld).handle.players().remove(npc)
+        npc.serverLevel().let {
+            it.players().remove(npc)
+            it.removePlayerImmediately(npc, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED)
+        }
 
         // Send packets to players to remove NPC
         for (player: Player in Bukkit.getOnlinePlayers())
