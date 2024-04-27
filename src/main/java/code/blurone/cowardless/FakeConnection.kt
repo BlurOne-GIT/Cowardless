@@ -1,10 +1,8 @@
 package code.blurone.cowardless
 
 import net.minecraft.network.Connection
-import net.minecraft.network.ConnectionProtocol.CodecData
 import net.minecraft.network.PacketListener
 import net.minecraft.network.protocol.PacketFlow
-import org.apache.commons.lang3.Validate
 
 class FakeConnection(enumprotocoldirection: PacketFlow) : Connection(enumprotocoldirection) {
     override fun setListener(packetlistener: PacketListener?) {
