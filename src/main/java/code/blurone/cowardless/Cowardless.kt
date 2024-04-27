@@ -2,6 +2,7 @@ package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
 import net.minecraft.core.Holder
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.EquipmentSlot
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
@@ -39,13 +41,15 @@ import java.time.LocalTime
 import java.util.*
 
 class Cowardless : JavaPlugin(), Listener {
-    private val hurtByTimestamps: MutableMap<String, LocalTime> = HashMap()
-    private val fakePlayerByName: MutableMap<String, ServerPlayer> = HashMap()
-    private val cowards: MutableMap<String, Player> = HashMap()
-    private val despawnTaskTimers: MutableMap<String, BukkitTask> = HashMap()
+    private val hurtByTimestamps: MutableMap<String, LocalTime> = mutableMapOf()
+    private val fakePlayerByName: MutableMap<String, ServerPlayer> = mutableMapOf()
+    private val cowards: MutableMap<String, Player> = mutableMapOf()
+    private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
     private val pvpSecondsThreshold = config.getLong("pvp_seconds_threshold", 30)
     private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
+    private val cowardeadNamespacedKey = NamespacedKey(this, "Cowardead")
+    private val cowardataNamespacedKey = NamespacedKey(this, "Cowardata")
 
     override fun onEnable() {
         // Plugin startup logic
@@ -185,13 +189,13 @@ class Cowardless : JavaPlugin(), Listener {
                     removePlayerPackets(it)
                 }
             }.runTaskLater(this, 20)
-            cowards.remove(event.entity.name)!!.let { player ->
-                // Drop player items
-                event.drops.clear()
-                event.drops.addAll(player.inventory.contents.toList())
-                // Set player location to the npc location when joining again
-                player.setMetadata("Cowardead", FixedMetadataValue(this, it.bukkitEntity.location))
-            }
+            /*
+            // Drop player items
+            event.drops.clear()
+            event.drops.addAll(player.inventory.contents.toList())
+            */
+            // Set player location to the npc location when joining again
+            cowards.remove(event.entity.name)!!.persistentDataContainer.set(cowardeadNamespacedKey, LocationDataType(), it.bukkitEntity.location)
         }
     }
 
@@ -208,45 +212,34 @@ class Cowardless : JavaPlugin(), Listener {
         setDespawnTask(event.player)
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     fun onJoin(event: PlayerJoinEvent)
     {
         // Despawn NPC, stop despawn task to avoid overlaps and update player position and health
         fakePlayerByName.remove(event.player.name)?.let{
             despawnTaskTimers.remove(event.player.name)?.let(BukkitTask::cancel)
-            event.player.teleport(it.bukkitEntity.location)
-            event.player.health = it.bukkitEntity.health
-            event.player.fireTicks = it.remainingFireTicks
-            (event.player as CraftPlayer).handle.activeEffects.clear()
-            (event.player as CraftPlayer).handle.activeEffects.putAll(it.activeEffects)
-            event.player.activePotionEffects.addAll(it.bukkitEntity.activePotionEffects)
+            (event.player as CraftPlayer).handle.load(it.saveWithoutId(CompoundTag(), true))
             removePlayerPackets(it)
             cowards.remove(event.player.name)
         }
 
         // Update player position and health if dead
-        event.player.getMetadata("Cowardead").firstOrNull()?.let {
-            val location = it.value() as Location
+        event.player.persistentDataContainer.get(cowardeadNamespacedKey, LocationDataType())?.let {
             event.player.inventory.clear()
-            event.player.teleport(location)
+            event.player.teleport(it)
+            event.player.exp = 0f
+            event.player.level = 0
             event.player.health = 0.0
             (event.player as CraftPlayer).handle.deathTime = 20
-            event.player.removeMetadata("Cowardead", this)
-            event.player.removeMetadata("Cowardate", this)
+            event.player.persistentDataContainer.remove(cowardeadNamespacedKey)
+            event.player.persistentDataContainer.remove(cowardataNamespacedKey)
         }
 
         // Update player position, health and attributes if despawned
-        event.player.getMetadata("Cowardate").firstOrNull()?.let {
-            val data = it.value() as List<*>
-            event.player.teleport(data[0] as Location)
-            event.player.health = data[1] as Double
-            event.player.fireTicks = data[2] as Int
-            (event.player as CraftPlayer).handle.activeEffects.clear()
-            @Suppress("UNCHECKED_CAST")
-            (event.player as CraftPlayer).handle.activeEffects.putAll(data[3] as Map<net.minecraft.world.effect.MobEffect, net.minecraft.world.effect.MobEffectInstance>)
-            event.player.removeMetadata("Cowardate", this)
+        event.player.persistentDataContainer.get(cowardataNamespacedKey, CompoundTagDataType())?.let {
+            (event.player as CraftPlayer).handle.load(it)
+            event.player.persistentDataContainer.remove(cowardataNamespacedKey)
         }
-
 
         // Show NPCs to player
         val ps: ServerGamePacketListenerImpl = (event.player as CraftPlayer).handle.connection
@@ -270,30 +263,9 @@ class Cowardless : JavaPlugin(), Listener {
         val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile)
         val serverNPC = ServerPlayer(server, level, profile, cookie.clientInformation)
         val bukkitNPC = serverNPC.bukkitEntity
-        // Set position to player position
-        serverNPC.setPos(player.location.x, player.location.y, player.location.z)
-        serverNPC.xRot = player.location.pitch; serverNPC.yRot = player.location.yaw
-        serverNPC.setYBodyRot(player.handle.yBodyRot)
-        // Physics
         serverNPC.noPhysics = false
-        serverNPC.isNoGravity = false
-        serverNPC.onGround = false
-        serverNPC.isInvulnerable = false
-        serverNPC.spawnInvulnerableTime = 0
-        // Give player attributes to NPC
-        bukkitNPC.health = player.health
-        serverNPC.remainingFireTicks = player.fireTicks
-        serverNPC.activeEffects.putAll(player.handle.activeEffects)
         serverNPC.entityData.assignValues(player.handle.entityData.nonDefaultValues)
-        // Give player visual items to NPC
-        bukkitNPC.inventory.let {
-            it.helmet = player.inventory.helmet
-            it.chestplate = player.inventory.chestplate
-            it.leggings = player.inventory.leggings
-            it.boots = player.inventory.boots
-            it.setItemInMainHand(player.inventory.itemInMainHand)
-            it.setItemInOffHand(player.inventory.itemInOffHand)
-        }
+        serverNPC.load(serverPlayer.saveWithoutId(CompoundTag(), true))
         serverNPC.bukkitPickUpLoot = false
         // Give NPC fake connection
         serverNPC.connection = ServerGamePacketListenerImpl(server, FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
@@ -302,7 +274,6 @@ class Cowardless : JavaPlugin(), Listener {
 
         // Add as player and entity
         level.addFreshEntity(serverNPC, CreatureSpawnEvent.SpawnReason.CUSTOM)
-        //(p.world as CraftWorld).handle.entityManager.addNewEntity(npc)
         level.players().add(serverNPC)
 
         addPlayerPackets(serverNPC)
@@ -317,7 +288,10 @@ class Cowardless : JavaPlugin(), Listener {
         {
             override fun run() {
                 fakePlayerByName.remove(p.name)?.let {
-                    p.setMetadata("Cowardate", FixedMetadataValue(this@Cowardless, listOf(it.bukkitEntity.location, it.health.toDouble(), it.remainingFireTicks, it.activeEffects)))
+                    p.persistentDataContainer.set(
+                        cowardataNamespacedKey, CompoundTagDataType(),
+                        it.saveWithoutId(CompoundTag(), true)
+                    )
                     removePlayerPackets(it)
                     cowards.remove(p.name)
                 }
