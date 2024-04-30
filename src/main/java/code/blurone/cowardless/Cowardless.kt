@@ -2,7 +2,6 @@ package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
 import net.minecraft.core.Holder
-import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
@@ -32,24 +31,21 @@ import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerPreLoginEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import java.time.LocalTime
-import java.util.*
 
 class Cowardless : JavaPlugin(), Listener {
     private val hurtByTimestamps: MutableMap<String, LocalTime> = mutableMapOf()
     private val fakePlayerByName: MutableMap<String, ServerPlayer> = mutableMapOf()
-    private val cowards: MutableMap<String, Player> = mutableMapOf()
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
     private val pvpSecondsThreshold = config.getLong("pvp_seconds_threshold", 30)
     private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
-    private val cowardeadNamespacedKey = NamespacedKey(this, "Cowardead")
-    private val cowardataNamespacedKey = NamespacedKey(this, "Cowardata")
     private lateinit var fakePlayerListUtil : FakePlayerListUtil
 
     override fun onEnable() {
@@ -84,6 +80,7 @@ class Cowardless : JavaPlugin(), Listener {
     }
 
 
+    /*
     @EventHandler
     fun onNpcDamage(event: EntityDamageByEntityEvent)
     {
@@ -133,6 +130,7 @@ class Cowardless : JavaPlugin(), Listener {
         // Cancel event
         event.isCancelled = true
     }
+     */
 
 
     @EventHandler
@@ -145,7 +143,7 @@ class Cowardless : JavaPlugin(), Listener {
             {
                 // Reset despawn timer
                 despawnTaskTimers[event.entity.name]?.cancel()
-                setDespawnTask(cowards[event.entity.name]!!)
+                setDespawnTask(event.entity.name)
             }
             return
         }
@@ -208,51 +206,32 @@ class Cowardless : JavaPlugin(), Listener {
     @EventHandler
     fun onLeave(event: PlayerQuitEvent)
     {
-        if (event.player.hasMetadata("NPCoward") || hurtByTimestamps.remove(event.player.name)?.isAfter(LocalTime.now()) != true) return
+        if (hurtByTimestamps.remove(event.player.name)?.isAfter(LocalTime.now()) != true) return
 
-        // Create and spawn NPC
-        fakePlayerByName[event.player.name] = spawnBody(event.player)
-        // Add to cowards
-        cowards[event.player.name] = event.player
-        // Set despawn task
-        setDespawnTask(event.player)
+        object : BukkitRunnable(){
+            override fun run() {
+                // Create and spawn NPC
+                fakePlayerByName[event.player.name] = spawnBody(event.player)
+                // Set despawn task
+                setDespawnTask(event.player.name)
+            }
+        }.runTaskLater(this, 0)
+    }
+
+    @EventHandler
+    fun onPreLogin(event: PlayerPreLoginEvent)
+    {
+        despawnTaskTimers.remove(event.name)?.let(BukkitTask::cancel)
+        fakePlayerByName[event.name]?.let {
+            fakePlayerListUtil.removeFake(it)
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     fun onJoin(event: PlayerJoinEvent)
     {
-        if (event.player.hasMetadata("NPCoward"))
-            return
-
-        // Despawn NPC, stop despawn task to avoid overlaps and update player position and health
-        fakePlayerByName.remove(event.player.name)?.let{
-            despawnTaskTimers.remove(event.player.name)?.let(BukkitTask::cancel)
-            (event.player as CraftPlayer).handle.load(it.saveWithoutId(CompoundTag(), true))
-            event.player.teleport(it.bukkitEntity.location)
-            removePlayerPackets(it)
-            cowards.remove(event.player.name)
-        }
-
-        /*
-        // Update player position and health if dead
-        event.player.persistentDataContainer.get(cowardeadNamespacedKey, LocationDataType())?.let {
-            event.player.inventory.clear()
-            event.player.teleport(it)
-            event.player.exp = 0f
-            event.player.level = 0
-            //event.player.health = 0.0
-            (event.player as CraftPlayer).handle.kill()
-            (event.player as CraftPlayer).handle.deathTime = 20
-            event.player.persistentDataContainer.remove(cowardeadNamespacedKey)
-            event.player.persistentDataContainer.remove(cowardataNamespacedKey)
-        }
-
-        // Update player position, health and attributes if despawned
-        event.player.persistentDataContainer.get(cowardataNamespacedKey, CompoundTagDataType())?.let {
-            (event.player as CraftPlayer).handle.load(it)
-            event.player.persistentDataContainer.remove(cowardataNamespacedKey)
-        }
-        */
+        event.player.removeMetadata("NPCoward", this)
+        event.player.removeMetadata("NPCGonnaBeHurt", this)
 
         // Show NPCs to player
         val ps: ServerGamePacketListenerImpl = (event.player as CraftPlayer).handle.connection
@@ -269,7 +248,7 @@ class Cowardless : JavaPlugin(), Listener {
         val serverPlayer = (player as CraftPlayer).handle
         val server = serverPlayer.server
         val level = serverPlayer.serverLevel()
-        val profile = GameProfile(UUID.randomUUID(), player.name)
+        val profile = GameProfile(player.uniqueId, player.name)
         player.profile.properties["textures"].firstOrNull()?.let {
             profile.properties.put("textures", it)
         }
@@ -299,13 +278,13 @@ class Cowardless : JavaPlugin(), Listener {
         return serverNPC
     }
 
-    private fun setDespawnTask(p: Player)
+    private fun setDespawnTask(playerName: String)
     {
         // Set despawn task to remove NPC and update player position and health when joining again
-        despawnTaskTimers[p.name] = object : BukkitRunnable()
+        despawnTaskTimers[playerName] = object : BukkitRunnable()
         {
             override fun run() {
-                fakePlayerByName.remove(p.name)?.let {
+                fakePlayerByName.remove(playerName)?.let {
                     /*
                     p.persistentDataContainer.set(
                         cowardataNamespacedKey, CompoundTagDataType(),
@@ -314,7 +293,6 @@ class Cowardless : JavaPlugin(), Listener {
                     */
                     fakePlayerListUtil.removeFake(it)
                     removePlayerPackets(it)
-                    cowards.remove(p.name)
                 }
             }
         }.runTaskLater(this, despawnSecondsThreshold * 20)

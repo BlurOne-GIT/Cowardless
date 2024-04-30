@@ -1,6 +1,5 @@
 package code.blurone.cowardless
 
-import com.mojang.authlib.GameProfile
 import com.mojang.logging.LogUtils
 import com.mojang.serialization.Dynamic
 import net.minecraft.nbt.CompoundTag
@@ -12,10 +11,8 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
-import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.server.players.GameProfileCache
 import net.minecraft.server.players.PlayerList
-import net.minecraft.stats.Stats
 import net.minecraft.world.effect.MobEffectInstance
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Entity.RemovalReason
@@ -38,17 +35,19 @@ class FakePlayerListUtil(
 
     @Suppress("UNCHECKED_CAST")
     private val playersByName: java.util.Map<String, ServerPlayer> =
-        //playerList.javaClass.getDeclaredField("C").apply { isAccessible = true }.get(playerList) as java.util.Map<String, ServerPlayer>
-        playerList.javaClass.declaredFields.first{
-            it.isAccessible = true
-            val value = it.get(playerList)
-            value is Map<*, *> && value.keys.first() is String && value.values.first() is ServerPlayer
-        }.get(playerList)
-                as java.util.Map<String, ServerPlayer>
+        PlayerList::class.java.getDeclaredField("playersByName").apply { isAccessible = true }.get(playerList) as java.util.Map<String, ServerPlayer>
+        /*PlayerList::class.java.declaredFields.firstOrNull{
+            Bukkit.getPluginManager().getPlugin("Cowardless")!!.logger.info("${it.name} ${it.type.name}")
+            it.type == java.util.Map::class.java
+                    && (it.genericType as ParameterizedType).actualTypeArguments[0] == String::class.java.genericSuperclass
+                    && (it.genericType as ParameterizedType).actualTypeArguments[1] == ServerPlayer::class.java.genericSuperclass
+        }?.apply { isAccessible = true }?.get(playerList)
+                as java.util.Map<String, ServerPlayer>?
+         */
 
     @Suppress("UNCHECKED_CAST")
     private val playersByUUID: java.util.Map<UUID, ServerPlayer> =
-        playerList.javaClass.getDeclaredField("m").apply { isAccessible = true }.get(playerList) as java.util.Map<UUID, ServerPlayer>
+        PlayerList::class.java.getDeclaredField("m").apply { isAccessible = true }.get(playerList) as java.util.Map<UUID, ServerPlayer>
 
     fun placeNewFakePlayer(
         networkmanager: Connection,
@@ -57,20 +56,20 @@ class FakePlayerListUtil(
     ) {
         val gameprofile = entityplayer.gameProfile
         val usercache: GameProfileCache? = playerList.server.profileCache
-        var s: String?
+        //var s: String?
         if (usercache != null) {
             val optional = usercache[gameprofile.id]
-            s = optional.map { obj: GameProfile -> obj.name }.orElse(gameprofile.name)
+            //s = optional.map { obj: GameProfile -> obj.name }.orElse(gameprofile.name)
             usercache.add(gameprofile)
-        } else {
+        }/* else {
             s = gameprofile.name
-        }
+        }*/
 
         val nbttagcompound: CompoundTag? = playerList.load(entityplayer)
-        if (nbttagcompound != null && nbttagcompound.contains("bukkit")) {
+        /*if (nbttagcompound != null && nbttagcompound.contains("bukkit")) {
             val bukkit = nbttagcompound.getCompound("bukkit")
             s = if (bukkit.contains("lastKnownName", 8)) bukkit.getString("lastKnownName") else s
-        }
+        }*/
 
         val resourcekey: ResourceKey<Level>
         if (nbttagcompound != null) {
@@ -114,7 +113,7 @@ class FakePlayerListUtil(
         val worlddata = worldserver1.getLevelData()
         entityplayer.loadGameTypes(nbttagcompound)
         val playerconnection =
-            ServerGamePacketListenerImpl(playerList.server, networkmanager, entityplayer, commonlistenercookie)
+            FakeSGPLI(this, playerList.server, networkmanager, entityplayer, commonlistenercookie)
         val gamerules = worldserver1.gameRules
         val flag = gamerules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN)
         val flag1 = gamerules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO)
@@ -162,6 +161,7 @@ class FakePlayerListUtil(
         playerList.players.add(entityplayer)
         playersByName.put(entityplayer.scoreboardName.lowercase(), entityplayer)
         playersByUUID.put(entityplayer.uuid, entityplayer)
+        //LOGGER.warn("CK: ${playersByUUID.containsKey(entityplayer.uuid)}, CV: ${playersByUUID.containsValue(entityplayer)}")
         val bukkitPlayer = entityplayer.bukkitEntity
         entityplayer.containerMenu.transferTo(entityplayer.containerMenu, bukkitPlayer)
         //val playerJoinEvent = PlayerJoinEvent(bukkitPlayer, joinMessage)
@@ -184,7 +184,7 @@ class FakePlayerListUtil(
 
             val packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(entityplayer))
 
-            var i: Int = 0
+            var i = 0
             while (i < playerList.players.size) {
                 val entityplayer1 = playerList.players[i]
                 if (entityplayer1.bukkitEntity.canSee(bukkitPlayer)) {
@@ -283,7 +283,6 @@ class FakePlayerListUtil(
 
     fun removeFake(entityplayer: ServerPlayer) { //: String? {
         val worldserver = entityplayer.serverLevel()
-        entityplayer.awardStat(Stats.LEAVE_GAME)
         if (entityplayer.containerMenu !== entityplayer.inventoryMenu) {
             entityplayer.closeContainer()
         }
