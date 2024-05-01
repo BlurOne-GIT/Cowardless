@@ -9,6 +9,7 @@ import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.util.FutureChain
 import org.slf4j.Logger
+import java.lang.reflect.Field
 
 class FakeSGPLI(private val fakePlayerListUtil: FakePlayerListUtil, minecraftserver: MinecraftServer?,
                 networkmanager: Connection?, entityplayer: ServerPlayer?, commonlistenercookie: CommonListenerCookie?
@@ -16,10 +17,11 @@ class FakeSGPLI(private val fakePlayerListUtil: FakePlayerListUtil, minecraftser
 
     companion object {
         val LOGGER: Logger = LogUtils.getLogger()
+        val CHAT_MESSAGE_CHAIN_FIELD: Field = ServerGamePacketListenerImpl::class.java.getDeclaredField("O")
+            .apply { isAccessible = true }
     }
 
-    private val chatMessageChain = ServerGamePacketListenerImpl::class.java.getDeclaredField("O")
-        .apply { isAccessible = true }.get(this) as FutureChain
+    private val chatMessageChain = CHAT_MESSAGE_CHAIN_FIELD.get(this) as FutureChain
 
     override fun onDisconnect(ichatbasecomponent: Component?) {
         if (!processedDisconnect) {
