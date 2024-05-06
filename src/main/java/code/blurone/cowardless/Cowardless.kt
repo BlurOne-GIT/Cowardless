@@ -1,24 +1,22 @@
 package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
-import net.minecraft.core.Holder
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ServerGamePacketListenerImpl
-import net.minecraft.util.Mth
-import net.minecraft.world.damagesource.*
+import net.minecraft.world.damagesource.DamageEffects
+import net.minecraft.world.damagesource.DamageScaling
+import net.minecraft.world.damagesource.DamageType
+import net.minecraft.world.damagesource.DeathMessageType
 import net.minecraft.world.entity.EquipmentSlot
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.NamespacedKey
 import org.bukkit.craftbukkit.v1_20_R3.CraftServer
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
-import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.FallingBlock
@@ -33,6 +31,7 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerPreLoginEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.player.PlayerVelocityEvent
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
@@ -43,6 +42,7 @@ class Cowardless : JavaPlugin(), Listener {
     private val hurtByTimestamps: MutableMap<String, LocalTime> = mutableMapOf()
     private val fakePlayerByName: MutableMap<String, ServerPlayer> = mutableMapOf()
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
+    private val shallCancelVelocityEvent: MutableList<String> = mutableListOf()
     private val pvpSecondsThreshold = config.getLong("pvp_seconds_threshold", 30)
     private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
@@ -54,21 +54,6 @@ class Cowardless : JavaPlugin(), Listener {
         // Register plugin events
         server.pluginManager.registerEvents(this, this)
 
-        object : BukkitRunnable() {
-            override fun run() {
-                //Tick NPCs
-                for (npc: ServerPlayer in fakePlayerByName.values)
-                {
-                    npc.doTick()
-                    npc.doCheckFallDamage(npc.deltaMovement.x, npc.deltaMovement.y, npc.deltaMovement.z, npc.onGround)
-                    for (player: Player in Bukkit.getOnlinePlayers()) {
-                        //Update position packet
-                        (player as CraftPlayer).handle.connection.send(ClientboundTeleportEntityPacket(npc))
-                    }
-                }
-            }
-        }.runTaskTimer(this, 0, 1)
-
         fakePlayerListUtil = FakePlayerListUtil((server as CraftServer).handle, server as CraftServer)
     }
 
@@ -79,59 +64,19 @@ class Cowardless : JavaPlugin(), Listener {
             removePlayerPackets(npc)
     }
 
-
-    /*
-    @EventHandler
-    fun onNpcDamage(event: EntityDamageByEntityEvent)
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent)
     {
-        if (event.entity.hasMetadata("NPCGonnaBeHurt") || event.damager.type != EntityType.PLAYER || !event.entity.hasMetadata("NPCoward") || event.cause == DamageCause.ENTITY_EXPLOSION) return
-        // Prevent infinite loop
-        event.entity.setMetadata("NPCGonnaBeHurt", FixedMetadataValue(this, true))
-        // Real attack
-        (event.entity as CraftPlayer).handle.hurt(DamageSource(Holder.direct(damageTypeGetter(event.cause, event.damager)), (event.damager as CraftEntity).handle) /*DamageSource.playerAttack((event.damager as CraftPlayer).handle)*/, event.finalDamage.toFloat())
-        event.entity.removeMetadata("NPCGonnaBeHurt", this)
-        // Set npc on fire if the player is holding an item with fire aspect
-        if ((event.damager as Player).inventory.itemInMainHand.containsEnchantment(Enchantment.FIRE_ASPECT))
-            event.entity.fireTicks = 80 * (event.damager as Player).inventory.itemInMainHand.getEnchantmentLevel(Enchantment.FIRE_ASPECT)
-        // Extra knockback NPC if player is holding an item with knockback
-        if ((event.damager as Player).inventory.itemInMainHand.containsEnchantment(Enchantment.KNOCKBACK)) {
-            /*
-            Knockback formula:
-            x = enchantment level
-            2.6x+1 is the distance in blocks pushed when being hit
-            If scaling by 0.4 equals 2 blocks, 0.2 should be 1 block, then (2.6x+1)*0.2 = 0.52x+0.2
-            Then we subtract 2 blocks from the formula because they are already applied by default when running hurt()
-            That gives us 0.52x-0.2, it's an approximation, but it works
-            Knockback caps at 20.2 blocks which is 4.04 in scale, since it's always the same, we can just use whole value
-            */
-            // Ok if you're reading this, the approximation wasn't enough for someone with OCD and I had to use a lookup table with the values I got from multiplying the exact distances by 0.2...
-            val km: Double = when ((event.damager as Player).inventory.itemInMainHand.getEnchantmentLevel(Enchantment.KNOCKBACK)) //if (x < 8) 0.52*x-0.1 else 3.8556418588
-            {
-                0 -> 0.0
-                1 -> 0.52606883
-                2 -> 1.0463414
-                3 -> 1.566311
-                4 -> 2.0868937
-                5 -> 2.6069022
-                6 -> 3.1269107
-                7 -> 3.6476016
-                else -> 3.8556418588
-            }
-            var d0: Double = event.damager.location.x - event.entity.location.x
-            var d1: Double = event.damager.location.z - event.entity.location.z
-
-            while (d0 * d0 + d1 * d1 < 1.0E-4) {
-                d0 = (Math.random() - Math.random()) * 0.01
-                d1 = (Math.random() - Math.random()) * 0.01
-            }
-            (event.entity as CraftPlayer).handle.animateHurt((Mth.atan2(d1, d0) * 57.2957763671875 - event.entity.location.yaw.toDouble()).toFloat())
-            (event.entity as CraftPlayer).handle.knockback(km, d0, d1)
-        }
-        // Cancel event
-        event.isCancelled = true
+        if (event.entity.hasMetadata("NPCoward") && event.damager is Player)
+            shallCancelVelocityEvent.add(event.entity.name)
     }
-     */
 
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onNpcVelocityCanceler(event: PlayerVelocityEvent)
+    {
+        if (shallCancelVelocityEvent.remove(event.player.name))
+            event.isCancelled = true
+    }
 
     @EventHandler
     fun onDamage(event: EntityDamageEvent)
@@ -193,13 +138,6 @@ class Cowardless : JavaPlugin(), Listener {
                     removePlayerPackets(it)
                 }
             }.runTaskLater(this, 20)
-            /*
-            // Drop player items
-            event.drops.clear()
-            event.drops.addAll(player.inventory.contents.toList())
-            */
-            // Set player location to the npc location when joining again
-            //cowards.remove(event.entity.name)!!.persistentDataContainer.set(cowardeadNamespacedKey, LocationDataType(), it.bukkitEntity.location)
         }
     }
 
@@ -253,25 +191,22 @@ class Cowardless : JavaPlugin(), Listener {
             profile.properties.put("textures", it)
         }
         val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile)
-        val serverNPC = ServerPlayer(server, level, profile, cookie.clientInformation)
-        val bukkitNPC = serverNPC.bukkitEntity
-        bukkitNPC.setMetadata("NPCoward", FixedMetadataValue(this, true))
-        // Give NPC fake connection
-        //serverNPC.connection = ServerGamePacketListenerImpl(server, FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
-        //serverNPC.server.playerList.placeNewPlayer(FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
+        val serverNPC = object : ServerPlayer(server, level, profile, cookie.clientInformation) {
+            override fun tick() {
+                connection.handleMovePlayer(ServerboundMovePlayerPacket.StatusOnly(onGround()))
+                doCheckFallDamage(deltaMovement.x, deltaMovement.y, deltaMovement.z, onGround())
+                super.tick()
+                doTick()
+            }
+        }
+        // Identifier
+        serverNPC.bukkitEntity.setMetadata("NPCoward", FixedMetadataValue(this, true))
+        // Place NPC
         fakePlayerListUtil.placeNewFakePlayer(FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
-        serverNPC.noPhysics = false
         serverNPC.entityData.assignValues(player.handle.entityData.nonDefaultValues)
-        //serverNPC.load(serverPlayer.saveWithoutId(CompoundTag(), true))
         serverNPC.spawnInvulnerableTime = 0
         serverNPC.uuid = player.uniqueId
         serverNPC.bukkitPickUpLoot = false
-        // Identifier
-
-        // Add as player and entity
-        //level.addFreshEntity(serverNPC, CreatureSpawnEvent.SpawnReason.CUSTOM)
-        //level.players().add(serverNPC)
-        //serverNPC.server.playerDataStorage
 
         addPlayerPackets(serverNPC)
 
@@ -285,12 +220,6 @@ class Cowardless : JavaPlugin(), Listener {
         {
             override fun run() {
                 fakePlayerByName.remove(playerName)?.let {
-                    /*
-                    p.persistentDataContainer.set(
-                        cowardataNamespacedKey, CompoundTagDataType(),
-                        it.saveWithoutId(CompoundTag(), true)
-                    )
-                    */
                     fakePlayerListUtil.removeFake(it)
                     removePlayerPackets(it)
                 }
@@ -317,24 +246,11 @@ class Cowardless : JavaPlugin(), Listener {
         npc.server.playerList.broadcastAll(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
         npc.server.playerList.broadcastAll(ClientboundSetEquipmentPacket(npc.id, itemList))
         npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, npc.entityData.nonDefaultValues))
-        /*
-        for (player: Player in Bukkit.getOnlinePlayers())
-        {
-            val ps: ServerGamePacketListenerImpl = (player as CraftPlayer).handle.connection
-            ps.send(ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, npc))
-            ps.send(ClientboundAddEntityPacket(npc)) //ps.send(ClientboundAddPlayerPacket(npc))
-            ps.send(ClientboundRotateHeadPacket(npc, ((npc.yRot%360)*256/360).toInt().toByte()))
-            ps.send(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
-            ps.send(ClientboundSetEquipmentPacket(npc.id, itemList))
-            ps.send(ClientboundSetEntityDataPacket(npc.id, npc.entityData.nonDefaultValues))
-        }
-        */
     }
 
     private fun removePlayerPackets(npc: ServerPlayer)
     {
         // Remove NPC as player and entity
-        //(npc.bukkitEntity.world as CraftWorld).handle.players().remove(npc)
         npc.serverLevel().let {
             it.players().remove(npc)
             it.removePlayerImmediately(npc, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED)
@@ -348,8 +264,6 @@ class Cowardless : JavaPlugin(), Listener {
             ps.send(ClientboundRemoveEntitiesPacket(npc.id))
         }
     }
-
-    //private val damageTypeGetter: (cause: DamageCause) ->
 
     // Straight out of DamageTypes.bootstrap(var0)
     // IDK if all this is needed but well, just in case I need it for all damage in the future
