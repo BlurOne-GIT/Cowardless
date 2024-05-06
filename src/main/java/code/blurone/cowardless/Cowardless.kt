@@ -6,20 +6,12 @@ import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ServerGamePacketListenerImpl
-import net.minecraft.world.damagesource.DamageEffects
-import net.minecraft.world.damagesource.DamageScaling
-import net.minecraft.world.damagesource.DamageType
-import net.minecraft.world.damagesource.DeathMessageType
 import net.minecraft.world.entity.EquipmentSlot
 import org.bukkit.Bukkit
-import org.bukkit.Location
-import org.bukkit.Material
 import org.bukkit.craftbukkit.v1_20_R3.CraftServer
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
-import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
-import org.bukkit.entity.FallingBlock
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -28,21 +20,20 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerPreLoginEvent
-import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.event.player.PlayerVelocityEvent
+import org.bukkit.event.player.*
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import java.time.LocalTime
+import java.util.*
 
 class Cowardless : JavaPlugin(), Listener {
     private val hurtByTimestamps: MutableMap<String, LocalTime> = mutableMapOf()
     private val fakePlayerByName: MutableMap<String, ServerPlayer> = mutableMapOf()
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
     private val shallCancelVelocityEvent: MutableList<String> = mutableListOf()
+    private val shallDisconectOnUUID: MutableList<String> = mutableListOf()
     private val pvpSecondsThreshold = config.getLong("pvp_seconds_threshold", 30)
     private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
@@ -157,12 +148,10 @@ class Cowardless : JavaPlugin(), Listener {
     }
 
     @EventHandler
-    fun onPreLogin(event: PlayerPreLoginEvent)
+    fun onPreLogin(event: AsyncPlayerPreLoginEvent)
     {
-        despawnTaskTimers.remove(event.name)?.let(BukkitTask::cancel)
-        fakePlayerByName[event.name]?.let {
-            fakePlayerListUtil.removeFake(it)
-        }
+        if (fakePlayerByName.containsKey(event.name))
+            shallDisconectOnUUID.add(event.name)
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -197,6 +186,19 @@ class Cowardless : JavaPlugin(), Listener {
                 doCheckFallDamage(deltaMovement.x, deltaMovement.y, deltaMovement.z, onGround())
                 super.tick()
                 doTick()
+            }
+
+            override fun getUUID(): UUID {
+                val realUUID = super.getUUID()
+
+                if (!shallDisconectOnUUID.remove(player.name))
+                    return realUUID
+
+                despawnTaskTimers.remove(player.name)?.let(BukkitTask::cancel)
+                fakePlayerByName[player.name]?.let {
+                    fakePlayerListUtil.removeFake(it)
+                }
+                return UUID(0L, if (realUUID.leastSignificantBits != 0L) 0L else 1L) // Don't return same UUID
             }
         }
         // Identifier
@@ -267,6 +269,7 @@ class Cowardless : JavaPlugin(), Listener {
 
     // Straight out of DamageTypes.bootstrap(var0)
     // IDK if all this is needed but well, just in case I need it for all damage in the future
+    /*
     private fun damageTypeGetter(cause: DamageCause, entity: Entity? = null, pos: Location? = null): DamageType = when (cause)
     {
         DamageCause.BLOCK_EXPLOSION -> DamageType("explosion", DamageScaling.ALWAYS, 0.1f)
@@ -331,4 +334,5 @@ class Cowardless : JavaPlugin(), Listener {
         DamageCause.WITHER -> DamageType("wither", 0.0f)
         DamageCause.WORLD_BORDER -> DamageType("outsideBorder", 0.0f)
     }
+    */
 }
