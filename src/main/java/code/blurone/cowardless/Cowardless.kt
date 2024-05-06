@@ -144,7 +144,7 @@ class Cowardless : JavaPlugin(), Listener {
     @EventHandler
     fun onLeave(event: PlayerQuitEvent)
     {
-        if (hurtByTimestamps.remove(event.player.name)?.isAfter(LocalTime.now()) != true) return
+        if (hurtByTimestamps[event.player.name]?.isAfter(LocalTime.now()) != true) return
 
         object : BukkitRunnable(){
             override fun run() {
