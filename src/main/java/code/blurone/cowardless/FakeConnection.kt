@@ -1,13 +1,15 @@
 package code.blurone.cowardless
 
+import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.network.Connection
-import net.minecraft.network.ConnectionProtocol.CodecData
+import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.PacketListener
 import net.minecraft.network.protocol.PacketFlow
-import org.apache.commons.lang3.Validate
 
 class FakeConnection(enumprotocoldirection: PacketFlow) : Connection(enumprotocoldirection) {
     override fun setListener(packetlistener: PacketListener?) {
+        val embeddedChannel = EmbeddedChannel(this)
+        embeddedChannel.attr(ATTRIBUTE_SERVERBOUND_PROTOCOL).set(ConnectionProtocol.PLAY.codec(PacketFlow.SERVERBOUND))
         /*
         Validate.notNull(packetlistener, "packetListener", *arrayOfNulls(0))
         val enumprotocoldirection = packetlistener!!.flow()
