@@ -28,7 +28,7 @@ import org.bukkit.scheduler.BukkitTask
 import java.time.LocalTime
 import java.util.*
 
-class Cowardless : JavaPlugin(), Listener {
+class CowardlessPaper : JavaPlugin(), Listener {
     private val hurtByTimestamps: MutableMap<String, LocalTime> = mutableMapOf()
     private val fakePlayerByName: MutableMap<String, ServerPlayer> = mutableMapOf()
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
@@ -205,7 +205,7 @@ class Cowardless : JavaPlugin(), Listener {
         serverNPC.bukkitEntity.setMetadata("NPCoward", FixedMetadataValue(this, true))
         // Place NPC
         fakePlayerListUtil.placeNewFakePlayer(FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
-        serverNPC.entityData.assignValues(player.handle.entityData.nonDefaultValues)
+        player.handle.entityData.nonDefaultValues?.let { serverNPC.entityData.assignValues(it) }
         serverNPC.spawnInvulnerableTime = 0
         serverNPC.uuid = player.uniqueId
         serverNPC.bukkitPickUpLoot = false
@@ -247,7 +247,7 @@ class Cowardless : JavaPlugin(), Listener {
         npc.server.playerList.broadcastAll(ClientboundRotateHeadPacket(npc, ((npc.yRot%360)*256/360).toInt().toByte()))
         npc.server.playerList.broadcastAll(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
         npc.server.playerList.broadcastAll(ClientboundSetEquipmentPacket(npc.id, itemList))
-        npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, npc.entityData.nonDefaultValues))
+        npc.entityData.nonDefaultValues.let { npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, it)) }
     }
 
     private fun removePlayerPackets(npc: ServerPlayer)
