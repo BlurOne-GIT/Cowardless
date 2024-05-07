@@ -13,7 +13,6 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.players.GameProfileCache
 import net.minecraft.server.players.PlayerList
-import net.minecraft.world.effect.MobEffectInstance
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Entity.RemovalReason
 import net.minecraft.world.entity.EntityType
@@ -57,11 +56,13 @@ class FakePlayerListUtil(
         val gameprofile = entityplayer.gameProfile
         val usercache: GameProfileCache? = playerList.server.profileCache
         //var s: String?
+        usercache?.add(gameprofile)
+        /*
         if (usercache != null) {
-            val optional = usercache[gameprofile.id]
+            //val optional = usercache[gameprofile.id]
             //s = optional.map { obj: GameProfile -> obj.name }.orElse(gameprofile.name)
             usercache.add(gameprofile)
-        }/* else {
+        } else {
             s = gameprofile.name
         }*/
 
@@ -92,13 +93,17 @@ class FakePlayerListUtil(
         }
 
         val worldserver: ServerLevel? = playerList.server.getLevel(resourcekey)
-        var worldserver1: ServerLevel
+        var worldserver1: ServerLevel = worldserver ?: run {
+            LOGGER.warn("Unknown respawn dimension {}, defaulting to overworld", resourcekey)
+            playerList.server.overworld()
+        }
+        /*
         if (worldserver == null) {
             LOGGER.warn("Unknown respawn dimension {}, defaulting to overworld", resourcekey)
             worldserver1 = playerList.server.overworld()
-        } else {
+        } else
             worldserver1 = worldserver
-        }
+         */
 
         entityplayer.setServerLevel(worldserver1)
         val s1 = networkmanager.getLoggableAddress(playerList.server.logIPs())
@@ -154,9 +159,8 @@ class FakePlayerListUtil(
         */
         playerconnection.teleport(entityplayer.x, entityplayer.y, entityplayer.z, entityplayer.yRot, entityplayer.xRot)
         val serverping: ServerStatus? = playerList.server.status
-        if (serverping != null) {
+        if (serverping != null)
             entityplayer.sendServerStatus(serverping)
-        }
 
         playerList.players.add(entityplayer)
         playersByName[entityplayer.scoreboardName.lowercase()] = entityplayer
@@ -184,14 +188,13 @@ class FakePlayerListUtil(
 
             val packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(entityplayer))
 
-            var i = 0
-            while (i < playerList.players.size) {
-                val entityplayer1 = playerList.players[i]
-                if (entityplayer1.bukkitEntity.canSee(bukkitPlayer)) {
+            //var i = 0
+            for (entityplayer1 in playerList.players) { //while (i < playerList.players.size) {
+                //val entityplayer1 = playerList.players[i]
+                if (entityplayer1.bukkitEntity.canSee(bukkitPlayer))
                     entityplayer1.connection.send(packet)
-                }
 
-                if (bukkitPlayer.canSee(entityplayer1.bukkitEntity)) {
+                if (bukkitPlayer.canSee(entityplayer1.bukkitEntity))
                     entityplayer.connection.send(
                         ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(
                             listOf(
@@ -199,8 +202,7 @@ class FakePlayerListUtil(
                             )
                         )
                     )
-                }
-                ++i
+                //++i
             }
 
             entityplayer.sentListPacket = true
@@ -212,12 +214,16 @@ class FakePlayerListUtil(
             }
 
             worldserver1 = entityplayer.serverLevel()
+            /*
             val iterator: Iterator<*> = entityplayer.getActiveEffects().iterator()
 
             while (iterator.hasNext()) {
                 val mobeffect = iterator.next() as MobEffectInstance
                 playerconnection.send(ClientboundUpdateMobEffectPacket(entityplayer.id, mobeffect))
             }
+             */
+            for (mobeffect in entityplayer.getActiveEffects())
+                playerconnection.send(ClientboundUpdateMobEffectPacket(entityplayer.id, mobeffect))
 
             if (nbttagcompound != null && nbttagcompound.contains("RootVehicle", 10)) {
                 val nbttagcompound1 = nbttagcompound.getCompound("RootVehicle")
@@ -230,37 +236,29 @@ class FakePlayerListUtil(
                     ) null else entity1x
                 }
                 if (entity != null) {
-                    val uuid = if (nbttagcompound1.hasUUID("Attach")) {
-                        nbttagcompound1.getUUID("Attach")
-                    } else {
-                        null
-                    }
+                    val uuid = if (nbttagcompound1.hasUUID("Attach")) nbttagcompound1.getUUID("Attach") else null
 
-                    var iterator1: Iterator<*>
-                    var entity1: Entity
-                    if (entity.uuid == uuid) {
+                    //var iterator1: Iterator<*>
+                    //var entity1: Entity
+                    if (entity.uuid == uuid)
                         entityplayer.startRiding(entity, true)
-                    } else {
-                        iterator1 = entity.indirectPassengers.iterator()
-
-                        while (iterator1.hasNext()) {
-                            entity1 = iterator1.next() as Entity
+                    else
+                        //iterator1 = entity.indirectPassengers.iterator()
+                        for (entity1 in entity.indirectPassengers) //while (iterator1.hasNext()) {
+                            //entity1 = iterator1.next() as Entity
                             if (entity1.uuid == uuid) {
                                 entityplayer.startRiding(entity1, true)
                                 break
                             }
-                        }
-                    }
 
                     if (!entityplayer.isPassenger) {
                         LOGGER.warn("Couldn't reattach entity to player")
                         entity.discard()
-                        iterator1 = entity.indirectPassengers.iterator()
+                        //iterator1 = entity.indirectPassengers.iterator()
 
-                        while (iterator1.hasNext()) {
-                            entity1 = iterator1.next() as Entity
+                        for (entity1 in entity.indirectPassengers) //while (iterator1.hasNext()) {
+                            //entity1 = iterator1.next() as Entity
                             entity1.discard()
-                        }
                     }
                 }
             }
@@ -283,9 +281,8 @@ class FakePlayerListUtil(
 
     fun removeFake(entityplayer: ServerPlayer) { //: String? {
         val worldserver = entityplayer.serverLevel()
-        if (entityplayer.containerMenu !== entityplayer.inventoryMenu) {
+        if (entityplayer.containerMenu !== entityplayer.inventoryMenu)
             entityplayer.closeContainer()
-        }
 
         /*
         val playerQuitEvent = PlayerQuitEvent(
@@ -316,20 +313,16 @@ class FakePlayerListUtil(
         playerList.server.customBossEvents.onPlayerDisconnect(entityplayer)
         val uuid = entityplayer.uuid
         val entityplayer1 = playersByUUID[uuid] as ServerPlayer
-        if (entityplayer1 === entityplayer) {
-            playersByUUID.remove(uuid)
-        }
+        if (entityplayer1 === entityplayer) playersByUUID.remove(uuid)
 
         val packet = ClientboundPlayerInfoRemovePacket(listOf(entityplayer.uuid))
 
-        for (i in playerList.players.indices) {
-            val entityplayer2 = playerList.players[i]
-            if (entityplayer2.bukkitEntity.canSee(entityplayer.bukkitEntity)) {
+        for (entityplayer2 in playerList.players) //for (i in playerList.players.indices) {
+            //val entityplayer2 = playerList.players[i]
+            if (entityplayer2.bukkitEntity.canSee(entityplayer.bukkitEntity))
                 entityplayer2.connection.send(packet)
-            } else {
+            else
                 entityplayer2.bukkitEntity.onEntityRemove(entityplayer)
-            }
-        }
 
         cserver.getScoreboardManager()!!.removePlayer(entityplayer.bukkitEntity)
         //return playerQuitEvent.quitMessage
