@@ -62,7 +62,8 @@ class FakePlayerListUtil(
         PlayerList::class.java.getDeclaredField("m").apply { isAccessible = true }.get(playerList) as MutableMap<UUID, ServerPlayer>
 
     private val mountSavedVehicle =
-        PlayerList::class.java.getDeclaredMethod("a", ServerPlayer::class.java, ServerLevel::class.java, CompoundTag::class.java)
+        PlayerList::class.java.getDeclaredMethod("mountSavedVehicle",
+            ServerPlayer::class.java, ServerLevel::class.java, CompoundTag::class.java)
             .apply { isAccessible = true }
 
     fun placeNewFakePlayer(
@@ -267,7 +268,7 @@ class FakePlayerListUtil(
         worldserver1.addNewPlayer(player)
         playerList.server.customBossEvents
             .onPlayerConnect(player) // see commented out section below worldserver.addPlayerJoin(entityplayer);
-        mountSavedVehicle(player, worldserver1, nbttagcompound)
+        mountSavedVehicle.invoke(playerList, player, worldserver1, nbttagcompound) //mountSavedVehicle(player, worldserver1, nbttagcompound)
 
 
         // Paper end - Fire PlayerJoinEvent when Player is actually ready
