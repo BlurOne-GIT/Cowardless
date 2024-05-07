@@ -329,13 +329,12 @@ class FakePlayerListUtil(
     }
 
     private fun save(entityplayer: ServerPlayer) {
-        if (entityplayer.bukkitEntity.isPersistent) {
-            playerList.playerIo.save(entityplayer)
-            val serverstatisticmanager = entityplayer.stats
-            serverstatisticmanager?.save()
+        if (!entityplayer.bukkitEntity.isPersistent) return
+        playerList.playerIo.save(entityplayer)
+        val serverstatisticmanager = entityplayer.stats
+        serverstatisticmanager?.save()
 
-            val advancementdataplayer = entityplayer.advancements
-            advancementdataplayer?.save()
-        }
+        val advancementdataplayer = entityplayer.advancements
+        advancementdataplayer?.save()
     }
 }
