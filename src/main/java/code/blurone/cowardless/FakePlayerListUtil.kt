@@ -34,8 +34,8 @@ class FakePlayerListUtil(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private val playersByName: java.util.Map<String, ServerPlayer> =
-        PlayerList::class.java.getDeclaredField("playersByName").apply { isAccessible = true }.get(playerList) as java.util.Map<String, ServerPlayer>
+    private val playersByName: MutableMap<String, ServerPlayer> =
+        PlayerList::class.java.getDeclaredField("playersByName").apply { isAccessible = true }.get(playerList) as MutableMap<String, ServerPlayer>
         /*PlayerList::class.java.declaredFields.firstOrNull{
             Bukkit.getPluginManager().getPlugin("Cowardless")!!.logger.info("${it.name} ${it.type.name}")
             it.type == java.util.Map::class.java
@@ -46,8 +46,8 @@ class FakePlayerListUtil(
          */
 
     @Suppress("UNCHECKED_CAST")
-    private val playersByUUID: java.util.Map<UUID, ServerPlayer> =
-        PlayerList::class.java.getDeclaredField("m").apply { isAccessible = true }.get(playerList) as java.util.Map<UUID, ServerPlayer>
+    private val playersByUUID: MutableMap<UUID, ServerPlayer> =
+        PlayerList::class.java.getDeclaredField("m").apply { isAccessible = true }.get(playerList) as MutableMap<UUID, ServerPlayer>
 
     fun placeNewFakePlayer(
         networkmanager: Connection,
@@ -159,8 +159,8 @@ class FakePlayerListUtil(
         }
 
         playerList.players.add(entityplayer)
-        playersByName.put(entityplayer.scoreboardName.lowercase(), entityplayer)
-        playersByUUID.put(entityplayer.uuid, entityplayer)
+        playersByName[entityplayer.scoreboardName.lowercase()] = entityplayer
+        playersByUUID[entityplayer.uuid] = entityplayer
         //LOGGER.warn("CK: ${playersByUUID.containsKey(entityplayer.uuid)}, CV: ${playersByUUID.containsValue(entityplayer)}")
         val bukkitPlayer = entityplayer.bukkitEntity
         entityplayer.containerMenu.transferTo(entityplayer.containerMenu, bukkitPlayer)
