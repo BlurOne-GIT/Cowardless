@@ -4,3 +4,5 @@ pvp_seconds_threshold: 30
 despawn_seconds_threshold: 30
 # If true, when being damaged, the despawn countdown will start over
 reset_despawn_threshold: true
+# Whether to log when an NPC is spawned
+logger: false

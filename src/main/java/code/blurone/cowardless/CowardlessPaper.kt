@@ -37,6 +37,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     private val pvpSecondsThreshold = config.getLong("pvp_seconds_threshold", 30)
     private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
+    private val shallLog = config.getBoolean("logger", true)
     private lateinit var fakePlayerListUtil : FakePlayerListUtil
 
     override fun onEnable() {
@@ -139,6 +140,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
 
         object : BukkitRunnable(){
             override fun run() {
+                if (shallLog) logger.info("${event.player.name} is a COWARD")
                 // Create and spawn NPC
                 fakePlayerByName[event.player.name] = spawnBody(event.player)
                 // Set despawn task
