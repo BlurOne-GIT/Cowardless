@@ -197,7 +197,7 @@ class Cowardless : JavaPlugin(), Listener {
                     return realUUID
 
                 despawnTaskTimers.remove(player.name)?.let(BukkitTask::cancel)
-                fakePlayerByName[player.name]?.let {
+                fakePlayerByName.remove(player.name)?.let {
                     fakePlayerListUtil.removeFake(it)
                 }
                 return UUID(0L, if (realUUID.leastSignificantBits != 0L) 0L else 1L) // Don't return same UUID
