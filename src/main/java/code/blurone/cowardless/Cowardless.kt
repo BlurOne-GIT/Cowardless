@@ -11,7 +11,6 @@ import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_20_R3.CraftServer
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
-import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -38,6 +37,9 @@ class Cowardless : JavaPlugin(), Listener {
     private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
     private val shallLog = config.getBoolean("logger", true)
+    private val redWarning = config.getBoolean("red_warning", false)
+    private val redUnwarnTasks: MutableMap<String, BukkitTask> = mutableMapOf()
+    private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
     private lateinit var fakePlayerListUtil : FakePlayerListUtil
 
     override fun onEnable() {
@@ -73,20 +75,19 @@ class Cowardless : JavaPlugin(), Listener {
     @EventHandler
     fun onDamage(event: EntityDamageEvent)
     {
-        if (event.entityType != EntityType.PLAYER) return
-        if (event.entity.hasMetadata("NPCoward"))
+        val player = event.entity as? Player ?: return
+        if (player.hasMetadata("NPCoward"))
         {
-            if (resetDespawnThreshold && (event.entity as Player).health != 0.0)
+            if (resetDespawnThreshold && player.health != 0.0)
             {
                 // Reset despawn timer
-                despawnTaskTimers[event.entity.name]?.cancel()
-                setDespawnTask(event.entity.name)
+                despawnTaskTimers[player.name]?.cancel()
+                setDespawnTask(player.name)
             }
             return
         }
 
-        // Set timestamp for cowards
-        hurtByTimestamps[event.entity.name] = when (event.cause)
+        val inSeconds = when (event.cause)
         {
             // Constant damage
             DamageCause.CONTACT,
@@ -96,7 +97,7 @@ class Cowardless : JavaPlugin(), Listener {
             DamageCause.FREEZE,
             DamageCause.HOT_FLOOR,
             DamageCause.LAVA,
-            DamageCause.SUFFOCATION -> LocalTime.now().plusSeconds(if (hurtByTimestamps[event.entity.name]?.isAfter(LocalTime.now().plusSeconds(2)) != true) 2 else pvpSecondsThreshold)
+            DamageCause.SUFFOCATION -> if (hurtByTimestamps[player.name]?.isAfter(LocalTime.now().plusSeconds(2)) != true) 2 else pvpSecondsThreshold
 
             // Pvp damage
             DamageCause.ENTITY_ATTACK,
@@ -105,9 +106,33 @@ class Cowardless : JavaPlugin(), Listener {
             DamageCause.MAGIC,
             DamageCause.PROJECTILE,
             DamageCause.SONIC_BOOM,
-            DamageCause.THORNS -> LocalTime.now().plusSeconds(pvpSecondsThreshold)
+            DamageCause.THORNS -> pvpSecondsThreshold
 
             else -> return
+        }
+
+        // Set timestamp for cowards
+        hurtByTimestamps[player.name] = LocalTime.now().plusSeconds(inSeconds)
+
+        // Add red warning
+        if (!redWarning) return
+
+        redUnwarnRunnables.remove(player.name)
+        redUnwarnTasks.remove(player.name)?.cancel()
+        val oldWorldBorder = player.worldBorder ?: run {
+            player.worldBorder = Bukkit.createWorldBorder()
+            player.worldBorder!!
+        }
+        val oldWarningDistance = oldWorldBorder.warningDistance
+        oldWorldBorder.warningDistance = Int.MAX_VALUE
+        object : BukkitRunnable() {
+            override fun run() {
+                if (oldWorldBorder == player.worldBorder)
+                    oldWorldBorder.warningDistance = oldWarningDistance
+            }
+        }.let {
+            redUnwarnRunnables[player.name] = it
+            redUnwarnTasks[player.name] = it.runTaskLater(this, 20L * inSeconds)
         }
     }
 
@@ -116,12 +141,14 @@ class Cowardless : JavaPlugin(), Listener {
     {
         // Get rid of the timestamp
         hurtByTimestamps.remove(event.entity.name)
+        redUnwarnTasks.remove(event.entity.name)?.cancel()
+        redUnwarnRunnables.remove(event.entity.name)?.runTask(this)
 
         if (!event.entity.hasMetadata("NPCoward")) return
 
         fakePlayerByName.remove(event.entity.name)?.let {
             // Cancel the despawn task to prevent overlaps
-            despawnTaskTimers.remove(event.entity.name)!!.let(BukkitTask::cancel)
+            despawnTaskTimers.remove(event.entity.name)!!.cancel()
             // Remove the NPC
             object : BukkitRunnable()
             {
@@ -196,7 +223,7 @@ class Cowardless : JavaPlugin(), Listener {
                 if (!shallDisconectOnUUID.remove(player.name))
                     return realUUID
 
-                despawnTaskTimers.remove(player.name)?.let(BukkitTask::cancel)
+                despawnTaskTimers.remove(player.name)?.cancel()
                 fakePlayerByName.remove(player.name)?.let {
                     fakePlayerListUtil.removeFake(it)
                 }

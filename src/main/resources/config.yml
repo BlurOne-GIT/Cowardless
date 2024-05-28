@@ -6,3 +6,5 @@ despawn_seconds_threshold: 30
 reset_despawn_threshold: true
 # Whether to log when an NPC is spawned
 logger: false
+# Whether to set the player's vignette red when it would spawn an npc if disconnecting
+red_warning: false
