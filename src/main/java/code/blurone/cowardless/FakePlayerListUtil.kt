@@ -444,7 +444,9 @@ class FakePlayerListUtil(
 
         entityplayer.unRide()
         worldserver.removePlayerImmediately(entityplayer, Entity.RemovalReason.UNLOADED_WITH_PLAYER)
-        entityplayer.retireScheduler() // Paper - Folia schedulers
+        try {
+            entityplayer.retireScheduler() // Paper - Folia schedulers
+        } catch (_: Exception) {}
         entityplayer.advancements.stopListening()
         playerList.players.remove(entityplayer)
         playersByName.remove(entityplayer.scoreboardName.lowercase(Locale.ROOT)) // Spigot
