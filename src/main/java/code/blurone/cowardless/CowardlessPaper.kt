@@ -277,7 +277,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         npc.server.playerList.broadcastAll(ClientboundRotateHeadPacket(npc, ((npc.yRot%360)*256/360).toInt().toByte()))
         npc.server.playerList.broadcastAll(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
         npc.server.playerList.broadcastAll(ClientboundSetEquipmentPacket(npc.id, itemList))
-        npc.entityData.nonDefaultValues.let { npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, it)) }
+        npc.entityData.nonDefaultValues?.let { npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, it)) }
     }
 
     private fun removePlayerPackets(npc: ServerPlayer)
