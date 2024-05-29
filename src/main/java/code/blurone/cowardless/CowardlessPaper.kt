@@ -11,7 +11,6 @@ import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_20_R3.CraftServer
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
-import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -25,17 +24,17 @@ import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
-import java.time.LocalTime
 import java.util.*
 
+@Suppress("unused")
 class CowardlessPaper : JavaPlugin(), Listener {
-    private val hurtByTimestamps: MutableMap<String, LocalTime> = mutableMapOf()
+    private val hurtByTickstamps: MutableMap<String, Long> = mutableMapOf()
     private val fakePlayerByName: MutableMap<String, ServerPlayer> = mutableMapOf()
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
     private val shallCancelVelocityEvent: MutableList<String> = mutableListOf()
-    private val shallDisconectOnUUID: MutableList<String> = mutableListOf()
-    private val pvpSecondsThreshold = config.getLong("pvp_seconds_threshold", 30)
-    private val despawnSecondsThreshold = config.getLong("despawn_seconds_threshold", 30)
+    private val shallDisconnectOnUUID: MutableList<String> = mutableListOf()
+    private val pvpTickThreshold = config.getLong("pvp_seconds_threshold", 30) * 20L
+    private val despawnTickThreshold = config.getLong("despawn_seconds_threshold", 30) * 20L
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
     private val shallLog = config.getBoolean("logger", true)
     private val redWarning = config.getBoolean("red_warning", false)
@@ -88,7 +87,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             return
         }
 
-        val inSeconds = when (event.cause)
+        val inTicks = when (event.cause)
         {
             // Constant damage
             DamageCause.CONTACT,
@@ -98,7 +97,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             DamageCause.FREEZE,
             DamageCause.HOT_FLOOR,
             DamageCause.LAVA,
-            DamageCause.SUFFOCATION -> if (hurtByTimestamps[player.name]?.isAfter(LocalTime.now().plusSeconds(2)) != true) 2 else pvpSecondsThreshold
+            DamageCause.SUFFOCATION -> if ((hurtByTickstamps[player.name] ?: 0L) > player.world.gameTime + 40L) pvpTickThreshold else 40L
 
             // Pvp damage
             DamageCause.ENTITY_ATTACK,
@@ -107,43 +106,43 @@ class CowardlessPaper : JavaPlugin(), Listener {
             DamageCause.MAGIC,
             DamageCause.PROJECTILE,
             DamageCause.SONIC_BOOM,
-            DamageCause.THORNS -> pvpSecondsThreshold
+            DamageCause.THORNS -> pvpTickThreshold
 
             else -> return
         }
 
         // Set timestamp for cowards
-        hurtByTimestamps[player.name] = LocalTime.now().plusSeconds(inSeconds)
+        hurtByTickstamps[player.name] = player.world.gameTime + inTicks
 
         // Add red warning
         if (!redWarning) return
 
-        redUnwarnRunnables.remove(player.name)
         redUnwarnTasks.remove(player.name)?.cancel()
+        redUnwarnRunnables.remove(player.name)?.run()
         val oldWorldBorder = player.worldBorder ?: run {
             player.worldBorder = Bukkit.createWorldBorder()
             player.worldBorder!!
         }
         val oldWarningDistance = oldWorldBorder.warningDistance
         oldWorldBorder.warningDistance = Int.MAX_VALUE
-        object : BukkitRunnable() {
+        val runnable = object : BukkitRunnable() {
             override fun run() {
                 if (oldWorldBorder == player.worldBorder)
                     oldWorldBorder.warningDistance = oldWarningDistance
             }
-        }.let {
-            redUnwarnRunnables[player.name] = it
-            redUnwarnTasks[player.name] = it.runTaskLater(this, 20L * inSeconds)
         }
+        redUnwarnRunnables[player.name] = runnable
+        redUnwarnTasks[player.name] = runnable.runTaskLater(this, inTicks)
     }
 
     @EventHandler(priority = EventPriority.LOW)
     fun onDead(event: PlayerDeathEvent)
     {
         // Get rid of the timestamp
-        hurtByTimestamps.remove(event.entity.name)
+        hurtByTickstamps.remove(event.entity.name)
         redUnwarnTasks.remove(event.entity.name)?.cancel()
-        redUnwarnRunnables.remove(event.entity.name)?.runTask(this)
+        redUnwarnRunnables.remove(event.entity.name)?.run()
+
 
         if (!event.entity.hasMetadata("NPCoward")) return
 
@@ -164,7 +163,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     @EventHandler
     fun onLeave(event: PlayerQuitEvent)
     {
-        if (hurtByTimestamps[event.player.name]?.isAfter(LocalTime.now()) != true) return
+        if ((hurtByTickstamps.remove(event.player.name) ?: return) <= event.player.world.gameTime) return
 
         object : BukkitRunnable(){
             override fun run() {
@@ -181,7 +180,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     fun onPreLogin(event: AsyncPlayerPreLoginEvent)
     {
         if (fakePlayerByName.containsKey(event.name))
-            shallDisconectOnUUID.add(event.name)
+            shallDisconnectOnUUID.add(event.name)
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -221,7 +220,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             override fun getUUID(): UUID {
                 val realUUID = super.getUUID()
 
-                if (!shallDisconectOnUUID.remove(player.name))
+                if (!shallDisconnectOnUUID.remove(player.name))
                     return realUUID
 
                 despawnTaskTimers.remove(player.name)?.cancel()
@@ -256,7 +255,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
                     removePlayerPackets(it)
                 }
             }
-        }.runTaskLater(this, despawnSecondsThreshold * 20)
+        }.runTaskLater(this, despawnTickThreshold)
     }
 
     private fun addPlayerPackets(npc: ServerPlayer)
