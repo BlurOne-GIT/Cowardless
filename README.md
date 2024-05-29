@@ -1,8 +1,9 @@
 # Cowardless
 A Minecraft plugin that replaces players who log out during combat with an NPC to be killed instead.
 
-- [<img width="16px" src="https://i.imgur.com/o104U27.png"></img> Modrinth](https://modrinth.com/plugin/cowardless)
-- [<img width="16px" src="https://static.spigotmc.org/img/spigot.png"></img> SpigotMC](https://www.spigotmc.org/resources/cowardless.115111/)
+- [<img width="16px" src="https://modrinth.com/favicon.ico"/> Modrinth](https://modrinth.com/plugin/cowardless)
+- [<img width="16px" src="https://www.spigotmc.org/favicon.ico"/> SpigotMC](https://www.spigotmc.org/resources/cowardless.115111/)
+- [<img width="16px" src="https://hangar.papermc.io/_nuxt/hangar-logo.DNKyJEtq.svg"/> Hangar](https://hangar.papermc.io/BlurOne/Cowardless)
 
 ## The problem
 Have you ever engaged in an intense PvP battle, only to have your opponent disconnect abruptly? It’s frustrating, right? You’ve meticulously set up a trap, but they slip away because you missed their exact disconnection point. Cowards ruin the thrill of combat.
