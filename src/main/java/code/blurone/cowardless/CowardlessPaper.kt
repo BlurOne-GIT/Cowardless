@@ -33,8 +33,8 @@ class CowardlessPaper : JavaPlugin(), Listener {
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
     private val shallCancelVelocityEvent: MutableList<String> = mutableListOf()
     private val shallDisconnectOnUUID: MutableList<String> = mutableListOf()
-    private val pvpTickThreshold = config.getLong("pvp_seconds_threshold", 30) * 20L
-    private val despawnTickThreshold = config.getLong("despawn_seconds_threshold", 30) * 20L
+    private val pvpTicksThreshold = config.getLong("pvp_seconds_threshold", 30) * 20L
+    private val despawnTicksThreshold = config.getLong("despawn_seconds_threshold", 30) * 20L
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
     private val shallLog = config.getBoolean("logger", true)
     private val redWarning = config.getBoolean("red_warning", false)
@@ -97,7 +97,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             DamageCause.FREEZE,
             DamageCause.HOT_FLOOR,
             DamageCause.LAVA,
-            DamageCause.SUFFOCATION -> if ((hurtByTickstamps[player.name] ?: 0L) > player.world.gameTime + 40L) pvpTickThreshold else 40L
+            DamageCause.SUFFOCATION -> if ((hurtByTickstamps[player.name] ?: 0L) > player.world.gameTime + 40L) pvpTicksThreshold else 40L
 
             // Pvp damage
             DamageCause.ENTITY_ATTACK,
@@ -106,7 +106,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             DamageCause.MAGIC,
             DamageCause.PROJECTILE,
             DamageCause.SONIC_BOOM,
-            DamageCause.THORNS -> pvpTickThreshold
+            DamageCause.THORNS -> pvpTicksThreshold
 
             else -> return
         }
@@ -255,7 +255,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
                     removePlayerPackets(it)
                 }
             }
-        }.runTaskLater(this, despawnTickThreshold)
+        }.runTaskLater(this, despawnTicksThreshold)
     }
 
     private fun addPlayerPackets(npc: ServerPlayer)
