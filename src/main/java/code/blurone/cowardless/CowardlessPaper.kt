@@ -20,6 +20,7 @@ import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.*
+import org.bukkit.event.player.PlayerQuitEvent.QuitReason
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
@@ -40,6 +41,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     private val redWarning = config.getBoolean("red_warning", false)
     private val redUnwarnTasks: MutableMap<String, BukkitTask> = mutableMapOf()
     private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
+    private val exemptedReasons: MutableList<QuitReason> = mutableListOf()
     private lateinit var fakePlayerListUtil : FakePlayerListUtil
 
     override fun onEnable() {
@@ -49,6 +51,13 @@ class CowardlessPaper : JavaPlugin(), Listener {
         server.pluginManager.registerEvents(this, this)
 
         fakePlayerListUtil = FakePlayerListUtil((server as CraftServer).handle, server as CraftServer)
+
+        if (config.getBoolean("exempt_kicked", true))
+            exemptedReasons.add(QuitReason.KICKED)
+        if (config.getBoolean("exempt_timed_out", true))
+            exemptedReasons.add(QuitReason.TIMED_OUT)
+        if (config.getBoolean("exempt_erroneous_state", false))
+            exemptedReasons.add(QuitReason.ERRONEOUS_STATE)
     }
 
     override fun onDisable() {
@@ -165,7 +174,11 @@ class CowardlessPaper : JavaPlugin(), Listener {
     @EventHandler
     fun onLeave(event: PlayerQuitEvent)
     {
-        if ((hurtByTickstamps.remove(event.player.name) ?: return) <= event.player.world.gameTime) return
+        if (
+            (hurtByTickstamps.remove(event.player.name) ?: return) <= event.player.world.gameTime ||
+            event.reason in exemptedReasons
+        ) return
+
 
         object : BukkitRunnable(){
             override fun run() {
