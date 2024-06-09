@@ -24,7 +24,6 @@ import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
-import java.time.LocalTime
 import java.util.*
 
 @Suppress("unused")
@@ -153,6 +152,7 @@ class Cowardless : JavaPlugin(), Listener {
             object : BukkitRunnable()
             {
                 override fun run() {
+                    if (shallLog) logger.info("${it.name}'s NPCoward has died.")
                     fakePlayerListUtil.removeFake(it)
                     removePlayerPackets(it)
                 }
@@ -167,7 +167,7 @@ class Cowardless : JavaPlugin(), Listener {
 
         object : BukkitRunnable(){
             override fun run() {
-                if (shallLog) logger.info("${event.player.name} is a COWARD")
+                if (shallLog) logger.info("${event.player.name} is a COWARD!")
                 // Create and spawn NPC
                 fakePlayerByName[event.player.name] = spawnBody(event.player)
                 // Set despawn task
@@ -223,6 +223,8 @@ class Cowardless : JavaPlugin(), Listener {
                 if (!shallDisconnectOnUUID.remove(player.name))
                     return realUUID
 
+                if (shallLog) logger.info("${player.name}'s NPCoward has been replaced by the real player.")
+
                 despawnTaskTimers.remove(player.name)?.cancel()
                 fakePlayerByName.remove(player.name)?.let {
                     fakePlayerListUtil.removeFake(it)
@@ -251,6 +253,7 @@ class Cowardless : JavaPlugin(), Listener {
         {
             override fun run() {
                 fakePlayerByName.remove(playerName)?.let {
+                    if (shallLog) logger.info("${it.name}'s NPCoward has expired.")
                     fakePlayerListUtil.removeFake(it)
                     removePlayerPackets(it)
                 }
