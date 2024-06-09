@@ -162,8 +162,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             object : BukkitRunnable()
             {
                 override fun run() {
-                    if (shallLog)
-                        logger.info("${it.name}'s NPCoward has died.")
+                    if (shallLog) logger.info("${it.name}'s NPCoward has died.")
                     fakePlayerListUtil.removeFake(it)
                     removePlayerPackets(it)
                 }
@@ -238,8 +237,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
                 if (!shallDisconnectOnUUID.remove(player.name))
                     return realUUID
 
-                if (shallLog)
-                    logger.info("${player.name}'s NPCoward has been replaced by the real player.")
+                if (shallLog) logger.info("${player.name}'s NPCoward has been replaced by the real player.")
 
                 despawnTaskTimers.remove(player.name)?.cancel()
                 fakePlayerByName.remove(player.name)?.let {
@@ -269,8 +267,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         {
             override fun run() {
                 fakePlayerByName.remove(playerName)?.let {
-                    if (shallLog)
-                        logger.info("${it.name}'s NPCoward has expired.")
+                    if (shallLog) logger.info("${it.name}'s NPCoward has expired.")
                     fakePlayerListUtil.removeFake(it)
                     removePlayerPackets(it)
                 }
