@@ -15,6 +15,6 @@ Introducing Cowardless, the ultimate plugin for Minecraft warriors. Say goodbye 
 3. **Automatic Despawn:** Fear not! If spared and left unattended, the clone will eventually despawn, allowing you to enjoy the peacefulness of having disconnected.
 
 ## The extra info
-In the `config.yml`, you can adjust how long a player is considered to be in combat, and how long a clone lasts before despawning. You can also turn on a logger that will print to the console when someone spawns an NPC, and a feature that will add the red vignette effect to a player when they are in combat, so that they know not to disconnect.
+In the `config.yml`\([Spigot](https://github.com/BlurOne-GIT/Cowardless/blob/main/src/main/resources/config.yml)/[Paper](https://github.com/BlurOne-GIT/Cowardless/blob/paper/src/main/resources/config.yml)), you can adjust how long a player is considered to be in combat, and how long a clone lasts before despawning. You can also turn on a logger that will print to the console when an NPC is spawned or despawned, and a feature that will add the red vignette effect to a player when they are in combat, so that they know not to disconnect. You can also exempt some disconnection reasons from spawning NPCs (**this feature is Paper only**).
 
 If you have any ideas or feature requests for the plugin, feel free to share them in the [repo's discussions](https://github.com/BlurOne-GIT/Cowardless/discussions).
