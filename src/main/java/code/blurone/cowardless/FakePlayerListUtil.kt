@@ -12,7 +12,6 @@ import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.Tag
 import net.minecraft.network.Connection
 import net.minecraft.network.protocol.game.*
-import net.minecraft.network.protocol.status.ServerStatus
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -31,7 +30,6 @@ import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_20_R3.CraftServer
 import org.bukkit.craftbukkit.v1_20_R3.CraftWorld
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
-import org.bukkit.entity.Player
 import org.bukkit.event.entity.CreatureSpawnEvent
 import org.bukkit.event.entity.EntityRemoveEvent
 import java.util.*
@@ -48,14 +46,6 @@ class FakePlayerListUtil(
     @Suppress("UNCHECKED_CAST")
     private val playersByName: MutableMap<String, ServerPlayer> =
         PlayerList::class.java.getDeclaredField("playersByName").apply { isAccessible = true }.get(playerList) as MutableMap<String, ServerPlayer>
-        /*PlayerList::class.java.declaredFields.firstOrNull{
-            Bukkit.getPluginManager().getPlugin("Cowardless")!!.logger.info("${it.name} ${it.type.name}")
-            it.type == java.util.Map::class.java
-                    && (it.genericType as ParameterizedType).actualTypeArguments[0] == String::class.java.genericSuperclass
-                    && (it.genericType as ParameterizedType).actualTypeArguments[1] == ServerPlayer::class.java.genericSuperclass
-        }?.apply { isAccessible = true }?.get(playerList)
-                as java.util.Map<String, ServerPlayer>?
-         */
 
     @Suppress("UNCHECKED_CAST")
     private val playersByUUID: MutableMap<UUID, ServerPlayer> =
@@ -157,7 +147,6 @@ class FakePlayerListUtil(
 
 
         // Spigot start - spawn location event
-        //val spawnPlayer: Player = player.bukkitEntity
         //@Suppress("UnstableApiUsage")
         /*val ev: PlayerSpawnLocationEvent =
             PlayerInitialSpawnEvent(spawnPlayer, spawnPlayer.location) // Paper use our duplicate event
@@ -227,7 +216,6 @@ class FakePlayerListUtil(
         var joinMessage: Component? = ichatmutablecomponent // Paper - Adventure*/
 
         playerconnection.teleport(player.x, player.y, player.z, player.yRot, player.xRot)
-        //val serverping: ServerStatus? = playerList.server.status
 
         playerList.server.status?.let(player::sendServerStatus)
 
@@ -282,9 +270,7 @@ class FakePlayerListUtil(
         val onlinePlayers: MutableList<ServerPlayer> = Lists.newArrayListWithExpectedSize<ServerPlayer>(
             playerList.players.size - 1
         ) // Paper - Use single player info update packet on join
-        for (entityplayer1 in playerList.players) { //for (i in playerList.players.indices) {
-            //val entityplayer1 = playerList.players[i]
-
+        for (entityplayer1 in playerList.players) {
             if (entityplayer1.bukkitEntity.canSee(bukkitPlayer))
                 // Paper start - Add Listing API for Player
                 if (entityplayer1.bukkitEntity.isListed(bukkitPlayer))
@@ -323,7 +309,7 @@ class FakePlayerListUtil(
 
         // CraftBukkit end
 
-        //player.getEntityData().refresh(player); // CraftBukkit - BungeeCord#2321, send complete data to self on spawn Paper - THIS IS NOT NEEDED ANYMORE
+        // player.getEntityData().refresh(player); // CraftBukkit - BungeeCord#2321, send complete data to self on spawn Paper - THIS IS NOT NEEDED ANYMORE
         playerList.sendLevelInfo(player, worldserver1)
 
 
@@ -336,13 +322,8 @@ class FakePlayerListUtil(
         worldserver1 = player.serverLevel() // CraftBukkit - Update in case join event changed it
 
         // CraftBukkit end
-        //val iterator: Iterator<*> = player.getActiveEffects().iterator()
-
-        //while (iterator.hasNext()) {
-            //val mobeffect = iterator.next() as MobEffectInstance
         for (mobeffect in player.getActiveEffects())
             playerconnection.send(ClientboundUpdateMobEffectPacket(player.id, mobeffect))
-        //}
 
 
         // Paper start - Fire PlayerJoinEvent when Player is actually ready; move vehicle into method so it can be called above - short circuit around that code
@@ -392,7 +373,6 @@ class FakePlayerListUtil(
         // Paper - Drop carried item when player has disconnected
         if (!entityplayer.containerMenu.getCarried().isEmpty) {
             val carried = entityplayer.containerMenu.getCarried()
-            //net.minecraft.world.item.ItemStack carried = entityplayer.containerMenu.getCarried();
             entityplayer.containerMenu.carried = net.minecraft.world.item.ItemStack.EMPTY
             entityplayer.drop(carried, false)
         }
@@ -441,8 +421,6 @@ class FakePlayerListUtil(
         // this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(entityplayer.getUUID())));
         val packet = ClientboundPlayerInfoRemovePacket(listOf(entityplayer.uuid))
 
-        //for (int i = 0; i < this.players.size(); i++) {
-        //    ServerPlayer entityplayer2 = (ServerPlayer) this.players.get(i);
         for (entityplayer2 in playerList.players)
             if (entityplayer2.bukkitEntity.canSee(entityplayer.bukkitEntity))
                 entityplayer2.connection.send(packet)
