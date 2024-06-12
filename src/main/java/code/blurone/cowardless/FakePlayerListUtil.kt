@@ -99,70 +99,48 @@ class FakePlayerListUtil(
 
         // Paper start - move logic in Entity to here, to use bukkit supplied world UUID & reset to main world spawn if no valid world is found
         var invalidPlayerWorld = false
-        run {
-            if (nbttagcompound != null) {
+        if (nbttagcompound != null)
+            run {
                 // The main way for bukkit worlds to store the world is the world UUID despite mojang adding custom worlds
                 val bWorld =
                     if (nbttagcompound.contains("WorldUUIDMost") && nbttagcompound.contains("WorldUUIDLeast"))
-                        Bukkit.getServer()
-                            .getWorld(
-                                UUID(
-                                    nbttagcompound.getLong("WorldUUIDMost"),
-                                    nbttagcompound.getLong("WorldUUIDLeast")
-                                )
-                            )
-                    else if (nbttagcompound.contains(
-                            "world",
-                            Tag.TAG_STRING.toInt()
-                        )
-                    ) // Paper - legacy bukkit world name
+                        Bukkit.getServer().getWorld(UUID(
+                            nbttagcompound.getLong("WorldUUIDMost"),
+                            nbttagcompound.getLong("WorldUUIDLeast")
+                        ))
+                    else if (nbttagcompound.contains("world", Tag.TAG_STRING.toInt())) // Paper - legacy bukkit world name
                         Bukkit.getServer().getWorld(nbttagcompound.getString("world"))
                     else
                         return@run  // if neither of the bukkit data points exist, proceed to the vanilla migration section
-                if (bWorld != null)
-                    resourcekey = (bWorld as CraftWorld).handle.dimension()
-                else {
-                    resourcekey = Level.OVERWORLD
+
+                resourcekey = (bWorld as? CraftWorld)?.handle?.dimension() ?: run {
                     invalidPlayerWorld = true
+                    Level.OVERWORLD
                 }
             }
-        }
         if (resourcekey == null) // only run the vanilla logic if we haven't found a world from the bukkit data
             // Below is the vanilla way of getting the dimension, this is for migration from vanilla servers
             // Paper end
-            if (nbttagcompound != null) {
-                val dataresult = DimensionType.parseLegacy(
-                    Dynamic(
-                        NbtOps.INSTANCE,
-                        nbttagcompound["Dimension"]
-                    )
-                ) // CraftBukkit - decompile error
+            resourcekey = if (nbttagcompound != null) {
+                val dataresult = DimensionType.parseLegacy(Dynamic(
+                    NbtOps.INSTANCE,
+                    nbttagcompound["Dimension"]
+                )) // CraftBukkit - decompile error
 
                 Objects.requireNonNull(LOGGER)
                 // Paper start - reset to main world spawn if no valid world is found
-                val result = dataresult.resultOrPartial { s1: String? ->
-                    LOGGER.error(
-                        s1
-                    )
-                }
+                val result = dataresult.resultOrPartial(LOGGER::error)
                 invalidPlayerWorld = result.isEmpty
-                resourcekey = result.orElse(Level.OVERWORLD)
+                result.orElse(Level.OVERWORLD)
                 // Paper end
             } else
-                resourcekey =
-                    Level.OVERWORLD // Paper - revert to vanilla default main world, this isn't an "invalid world" since no player data existed // Paper
+               Level.OVERWORLD // Paper - revert to vanilla default main world, this isn't an "invalid world" since no player data existed // Paper
 
-        val resourcekey1 = resourcekey
-        val worldserver: ServerLevel? = playerList.server.getLevel(resourcekey1!!)
-        var worldserver1: ServerLevel
-
-        if (worldserver == null) {
-            LOGGER.warn("Unknown respawn dimension {}, defaulting to overworld", resourcekey1)
-            worldserver1 = playerList.server.overworld()
+        var worldserver1: ServerLevel = playerList.server.getLevel(resourcekey!!) ?: run {
+            LOGGER.warn("Unknown respawn dimension {}, defaulting to overworld", resourcekey!!)
             invalidPlayerWorld = true // Paper - reset to main world if no world with parsed value is found
-        } else
-            worldserver1 = worldserver
-
+            playerList.server.overworld()
+        }
 
         // Paper start - Entity#getEntitySpawnReason
         if (nbttagcompound == null)
@@ -179,13 +157,13 @@ class FakePlayerListUtil(
 
 
         // Spigot start - spawn location event
-        val spawnPlayer: Player = player.bukkitEntity
+        //val spawnPlayer: Player = player.bukkitEntity
         //@Suppress("UnstableApiUsage")
         /*val ev: PlayerSpawnLocationEvent =
             PlayerInitialSpawnEvent(spawnPlayer, spawnPlayer.location) // Paper use our duplicate event
         cserver.pluginManager.callEvent(ev)*/
 
-        val loc = spawnPlayer.location //ev.spawnLocation
+        val loc = player.bukkitEntity.location //ev.spawnLocation
         worldserver1 = (loc.world as CraftWorld).handle
 
         player.spawnIn(worldserver1)
@@ -249,10 +227,9 @@ class FakePlayerListUtil(
         var joinMessage: Component? = ichatmutablecomponent // Paper - Adventure*/
 
         playerconnection.teleport(player.x, player.y, player.z, player.yRot, player.xRot)
-        val serverping: ServerStatus? = playerList.server.status
+        //val serverping: ServerStatus? = playerList.server.status
 
-        if (serverping != null)
-            player.sendServerStatus(serverping)
+        playerList.server.status?.let(player::sendServerStatus)
 
 
         // entityplayer.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(this.players)); // CraftBukkit - replaced with loop below
@@ -372,16 +349,16 @@ class FakePlayerListUtil(
         playerList.onPlayerJoinFinish(player, worldserver1, s1)
 
         // Paper start - Send empty chunk, so players aren't stuck in the world loading screen with our chunk system not sending chunks when dead
-        if (player.isDeadOrDying) {
-            val plains: Holder<Biome> = worldserver1.registryAccess().registryOrThrow(Registries.BIOME)
-                .getHolderOrThrow(Biomes.PLAINS)
-            player.connection.send(
-                ClientboundLevelChunkWithLightPacket(
-                    EmptyLevelChunk(worldserver1, player.chunkPosition(), plains),
-                    worldserver1.lightEngine, null as BitSet?, null as BitSet?, true
-                )
+        if (!player.isDeadOrDying) return
+
+        val plains: Holder<Biome> = worldserver1.registryAccess().registryOrThrow(Registries.BIOME)
+            .getHolderOrThrow(Biomes.PLAINS)
+        player.connection.send(
+            ClientboundLevelChunkWithLightPacket(
+                EmptyLevelChunk(worldserver1, player.chunkPosition(), plains),
+                worldserver1.lightEngine, null as BitSet?, null as BitSet?, true
             )
-        }
+        )
 
     }
 
@@ -428,13 +405,12 @@ class FakePlayerListUtil(
             if (entity.hasExactlyOnePlayerPassenger()) {
                 LOGGER.debug("Removing player mount")
                 entityplayer.stopRiding()
-                entity.passengersAndSelf.forEach { entity1 ->
+
+                for (entity1 in entity.passengersAndSelf) {
                     // Paper start - Fix villager boat exploit
                     if (entity1 is AbstractVillager) {
                         val human = entity1.tradingPlayer
-                        if (human != null) {
-                            entity1.tradingPlayer = null
-                        }
+                        if (human != null) entity1.tradingPlayer = null
                     }
                     // Paper end - Fix villager boat exploit
                     entity1.setRemoved(Entity.RemovalReason.UNLOADED_WITH_PLAYER, EntityRemoveEvent.Cause.PLAYER_QUIT) // CraftBukkit - add Bukkit remove cause
