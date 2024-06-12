@@ -31,8 +31,8 @@ class Cowardless : JavaPlugin(), Listener {
     private val hurtByTickstamps: MutableMap<String, Long> = mutableMapOf()
     private val fakePlayerByName: MutableMap<String, ServerPlayer> = mutableMapOf()
     private val despawnTaskTimers: MutableMap<String, BukkitTask> = mutableMapOf()
-    private val shallCancelVelocityEvent: MutableList<String> = mutableListOf()
-    private val shallDisconnectOnUUID: MutableList<String> = mutableListOf()
+    private val shallCancelVelocityEvent: MutableSet<String> = mutableSetOf()
+    private val shallDisconnectOnUUID: MutableSet<String> = mutableSetOf()
     private val pvpTicksThreshold = config.getLong("pvp_seconds_threshold", 30) * 20L
     private val despawnTicksThreshold = config.getLong("despawn_seconds_threshold", 30) * 20L
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
