@@ -2,15 +2,12 @@ package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.game.*
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
-import net.minecraft.server.network.ServerGamePacketListenerImpl
-import net.minecraft.world.entity.EquipmentSlot
 import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_20_R3.CraftServer
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
-import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -19,7 +16,10 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.player.*
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent
+import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.player.PlayerVelocityEvent
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
@@ -241,73 +241,4 @@ class Cowardless : JavaPlugin(), Listener {
             }
         }.runTaskLater(this, despawnTicksThreshold)
     }
-
-    // Straight out of DamageTypes.bootstrap(var0)
-    // IDK if all this is needed but well, just in case I need it for all damage in the future
-    /*
-    private fun damageTypeGetter(cause: DamageCause, entity: Entity? = null, pos: Location? = null): DamageType = when (cause)
-    {
-        DamageCause.BLOCK_EXPLOSION -> DamageType("explosion", DamageScaling.ALWAYS, 0.1f)
-        DamageCause.CONTACT ->
-            if (pos?.block?.type == Material.SWEET_BERRY_BUSH)
-                DamageType("sweetBerryBush", 0.1f, DamageEffects.POKING)
-            else if (pos?.subtract(0.0, 1.0, 0.0)?.block?.type == Material.POINTED_DRIPSTONE)
-                DamageType("stalagmite", 0.0f)
-            else
-                DamageType("cactus", 0.1f)
-        DamageCause.CRAMMING -> DamageType("cramming", 0.0f)
-        DamageCause.CUSTOM -> DamageType("generic", 0.0f)
-        DamageCause.DRAGON_BREATH -> DamageType("dragonBreath", 0.0f)
-        DamageCause.DROWNING -> DamageType("drown", 0.0f, DamageEffects.DROWNING)
-        DamageCause.DRYOUT,
-        DamageCause.MELTING -> DamageType("dryout", 0.1f)
-        DamageCause.ENTITY_ATTACK,
-        DamageCause.ENTITY_SWEEP_ATTACK -> when (entity?.type)
-        {
-            EntityType.PLAYER -> DamageType("player", 0.1f)
-            EntityType.BEE -> DamageType("sting", 0.1f)
-            EntityType.GOAT -> DamageType("thrown", 0.1f)
-            else -> DamageType("mob", 0.1f)
-        }
-        DamageCause.ENTITY_EXPLOSION -> DamageType("explosion.player", DamageScaling.ALWAYS, 0.1f)
-        DamageCause.FALL -> DamageType("fall", DamageScaling.WHEN_CAUSED_BY_LIVING_NON_PLAYER, 0.0f, DamageEffects.HURT, DeathMessageType.FALL_VARIANTS)
-        DamageCause.FALLING_BLOCK ->
-            when ((entity as FallingBlock).blockData.material) {
-                Material.ANVIL,
-                Material.CHIPPED_ANVIL,
-                Material.DAMAGED_ANVIL -> DamageType("anvil", 0.1f)
-                Material.POINTED_DRIPSTONE -> DamageType("fallingStalactite", 0.1f)
-                else -> DamageType("fallingBlock", 0.1f)
-            }
-        DamageCause.FIRE -> DamageType("inFire", 0.1f, DamageEffects.BURNING)
-        DamageCause.FIRE_TICK -> DamageType("onFire", 0.0f, DamageEffects.BURNING)
-        DamageCause.FLY_INTO_WALL -> DamageType("flyIntoWall", 0.0f)
-        DamageCause.FREEZE -> DamageType("freeze", 0.0f, DamageEffects.FREEZING)
-        DamageCause.HOT_FLOOR -> DamageType("hotFloor", 0.1f, DamageEffects.BURNING)
-        DamageCause.KILL -> DamageType("genericKill", 0.0f)
-        DamageCause.LAVA -> DamageType("lava", 0.1f, DamageEffects.BURNING)
-        DamageCause.LIGHTNING -> DamageType("lightningBolt", 0.1f)
-        DamageCause.MAGIC,
-        DamageCause.POISON -> if (entity == null) DamageType("magic", 0.0f) else DamageType("indirectMagic", 0.0f)
-        DamageCause.PROJECTILE -> when (entity?.type)
-        {
-            EntityType.ARROW,
-            EntityType.SPECTRAL_ARROW -> DamageType("arrow", 0.1f)
-            EntityType.TRIDENT -> DamageType("trident", 0.1f)
-            EntityType.FIREWORK -> DamageType("fireworks", 0.1f)
-            EntityType.SMALL_FIREBALL -> DamageType("onFire", 0.1f, DamageEffects.BURNING)
-            EntityType.FIREBALL -> DamageType("fireball", 0.1f, DamageEffects.BURNING)
-            EntityType.WITHER_SKULL -> DamageType("witherSkull", 0.1f)
-            else -> if (entity?.type == EntityType.PLAYER) DamageType("player", 0.1f) else DamageType("mob", 0.1f)
-        }
-        DamageCause.SONIC_BOOM -> DamageType("sonic_boom", DamageScaling.ALWAYS, 0.0f)
-        DamageCause.STARVATION -> DamageType("starve", 0.0f)
-        DamageCause.SUFFOCATION -> DamageType("inWall", 0.0f)
-        DamageCause.SUICIDE -> DamageType("genericKill", 0.0f)
-        DamageCause.THORNS -> DamageType("thorns", 0.1f, DamageEffects.THORNS)
-        DamageCause.VOID -> DamageType("outOfWorld", 0.0f)
-        DamageCause.WITHER -> DamageType("wither", 0.0f)
-        DamageCause.WORLD_BORDER -> DamageType("outsideBorder", 0.0f)
-    }
-    */
 }

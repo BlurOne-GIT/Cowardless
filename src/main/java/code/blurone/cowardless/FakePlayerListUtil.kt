@@ -6,7 +6,6 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.network.Connection
 import net.minecraft.network.protocol.game.*
-import net.minecraft.network.protocol.status.ServerStatus
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -21,7 +20,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.dimension.DimensionType
 import org.bukkit.craftbukkit.v1_20_R3.CraftServer
 import org.bukkit.craftbukkit.v1_20_R3.CraftWorld
-import org.bukkit.entity.Player
 import java.util.*
 
 class FakePlayerListUtil(
@@ -35,14 +33,6 @@ class FakePlayerListUtil(
     @Suppress("UNCHECKED_CAST")
     private val playersByName: MutableMap<String, ServerPlayer> =
         PlayerList::class.java.getDeclaredField("playersByName").apply { isAccessible = true }.get(playerList) as MutableMap<String, ServerPlayer>
-        /*PlayerList::class.java.declaredFields.firstOrNull{
-            Bukkit.getPluginManager().getPlugin("Cowardless")!!.logger.info("${it.name} ${it.type.name}")
-            it.type == java.util.Map::class.java
-                    && (it.genericType as ParameterizedType).actualTypeArguments[0] == String::class.java.genericSuperclass
-                    && (it.genericType as ParameterizedType).actualTypeArguments[1] == ServerPlayer::class.java.genericSuperclass
-        }?.apply { isAccessible = true }?.get(playerList)
-                as java.util.Map<String, ServerPlayer>?
-         */
 
     @Suppress("UNCHECKED_CAST")
     private val playersByUUID: MutableMap<UUID, ServerPlayer> =
@@ -82,22 +72,13 @@ class FakePlayerListUtil(
         } else
             resourcekey = entityplayer.serverLevel().dimension()
 
-        //val worldserver: ServerLevel? = playerList.server.getLevel(resourcekey)
         var worldserver1: ServerLevel = playerList.server.getLevel(resourcekey) ?: run {
             LOGGER.warn("Unknown respawn dimension {}, defaulting to overworld", resourcekey)
             playerList.server.overworld()
         }
-        /*
-        if (worldserver == null) {
-            LOGGER.warn("Unknown respawn dimension {}, defaulting to overworld", resourcekey)
-            worldserver1 = playerList.server.overworld()
-        } else
-            worldserver1 = worldserver
-         */
 
         entityplayer.setServerLevel(worldserver1)
         val s1 = networkmanager.getLoggableAddress(playerList.server.logIPs())
-        //val spawnPlayer: Player = entityplayer.bukkitEntity
         //val ev = PlayerSpawnLocationEvent(spawnPlayer, spawnPlayer.location)
         //this.cserver.pluginManager.callEvent(ev)
         val loc =  entityplayer.bukkitEntity.location //ev.spawnLocation
@@ -148,14 +129,12 @@ class FakePlayerListUtil(
         var joinMessage = CraftChatMessage.fromComponent(ichatmutablecomponent)
         */
         playerconnection.teleport(entityplayer.x, entityplayer.y, entityplayer.z, entityplayer.yRot, entityplayer.xRot)
-        //val serverping: ServerStatus? = playerList.server.status
 
         playerList.server.status?.let(entityplayer::sendServerStatus)
 
         playerList.players.add(entityplayer)
         playersByName[entityplayer.scoreboardName.lowercase()] = entityplayer
         playersByUUID[entityplayer.uuid] = entityplayer
-        //LOGGER.warn("CK: ${playersByUUID.containsKey(entityplayer.uuid)}, CV: ${playersByUUID.containsValue(entityplayer)}")
         val bukkitPlayer = entityplayer.bukkitEntity
         entityplayer.containerMenu.transferTo(entityplayer.containerMenu, bukkitPlayer)
         //val playerJoinEvent = PlayerJoinEvent(bukkitPlayer, joinMessage)
@@ -178,9 +157,7 @@ class FakePlayerListUtil(
 
         val packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(entityplayer))
 
-        //var i = 0
-        for (entityplayer1 in playerList.players) { //while (i < playerList.players.size) {
-            //val entityplayer1 = playerList.players[i]
+        for (entityplayer1 in playerList.players) {
             if (entityplayer1.bukkitEntity.canSee(bukkitPlayer))
                 entityplayer1.connection.send(packet)
 
@@ -192,7 +169,6 @@ class FakePlayerListUtil(
                         )
                     )
                 )
-            //++i
         }
 
         entityplayer.sentListPacket = true
@@ -204,14 +180,7 @@ class FakePlayerListUtil(
         }
 
         worldserver1 = entityplayer.serverLevel()
-        /*
-    val iterator: Iterator<*> = entityplayer.getActiveEffects().iterator()
 
-    while (iterator.hasNext()) {
-        val mobeffect = iterator.next() as MobEffectInstance
-        playerconnection.send(ClientboundUpdateMobEffectPacket(entityplayer.id, mobeffect))
-    }
-     */
         for (mobeffect in entityplayer.getActiveEffects())
             playerconnection.send(ClientboundUpdateMobEffectPacket(entityplayer.id, mobeffect))
 
@@ -228,14 +197,10 @@ class FakePlayerListUtil(
             if (entity != null) {
                 val uuid = if (nbttagcompound1.hasUUID("Attach")) nbttagcompound1.getUUID("Attach") else null
 
-                //var iterator1: Iterator<*>
-                //var entity1: Entity
                 if (entity.uuid == uuid)
                     entityplayer.startRiding(entity, true)
                 else
-                    //iterator1 = entity.indirectPassengers.iterator()
-                    for (entity1 in entity.indirectPassengers) //while (iterator1.hasNext()) {
-                        //entity1 = iterator1.next() as Entity
+                    for (entity1 in entity.indirectPassengers)
                         if (entity1.uuid == uuid) {
                             entityplayer.startRiding(entity1, true)
                             break
@@ -244,10 +209,8 @@ class FakePlayerListUtil(
                 if (!entityplayer.isPassenger) {
                     LOGGER.warn("Couldn't reattach entity to player")
                     entity.discard()
-                    //iterator1 = entity.indirectPassengers.iterator()
 
-                    for (entity1 in entity.indirectPassengers) //while (iterator1.hasNext()) {
-                        //entity1 = iterator1.next() as Entity
+                    for (entity1 in entity.indirectPassengers)
                         entity1.discard()
                 }
             }
@@ -305,8 +268,7 @@ class FakePlayerListUtil(
 
         val packet = ClientboundPlayerInfoRemovePacket(listOf(entityplayer.uuid))
 
-        for (entityplayer2 in playerList.players) //for (i in playerList.players.indices) {
-            //val entityplayer2 = playerList.players[i]
+        for (entityplayer2 in playerList.players)
             if (entityplayer2.bukkitEntity.canSee(entityplayer.bukkitEntity))
                 entityplayer2.connection.send(packet)
             else
