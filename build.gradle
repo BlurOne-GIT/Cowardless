@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'code.blurone'
-version = '2.2.0-paper-0'
+version = '2.2.1-paper-0'
 
 repositories {
     mavenCentral()
