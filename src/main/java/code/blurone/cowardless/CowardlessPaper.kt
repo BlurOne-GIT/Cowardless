@@ -146,7 +146,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
         redUnwarnTasks.remove(event.entity.name)?.cancel()
         redUnwarnRunnables.remove(event.entity.name)?.run()
 
-
         if (!event.entity.hasMetadata("NPCoward")) return
 
         fakePlayerByName.remove(event.entity.name)?.let {
@@ -195,14 +194,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
     {
         event.player.removeMetadata("NPCoward", this)
         event.player.removeMetadata("NPCGonnaBeHurt", this)
-
-        // Show NPCs to player
-        val ps: ServerGamePacketListenerImpl = (event.player as CraftPlayer).handle.connection
-        for (npc: ServerPlayer in fakePlayerByName.values)
-        {
-            ps.send(ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, npc))
-            ps.send(ClientboundAddEntityPacket(npc)) //ps.send(ClientboundAddPlayerPacket(npc))
-        }
     }
 
     private fun spawnBody(player: Player): ServerPlayer
@@ -247,8 +238,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
         serverNPC.uuid = player.uniqueId
         serverNPC.bukkitPickUpLoot = false
 
-        addPlayerPackets(serverNPC)
-
         return serverNPC
     }
 
@@ -261,32 +250,9 @@ class CowardlessPaper : JavaPlugin(), Listener {
                 fakePlayerByName.remove(playerName)?.let {
                     if (shallLog) logger.info("${it.name}'s NPCoward has expired.")
                     fakePlayerListUtil.removeFake(it)
-                    //removePlayerPackets(it)
                 }
             }
         }.runTaskLater(this, despawnTicksThreshold)
-    }
-
-    private fun addPlayerPackets(npc: ServerPlayer)
-    {
-        // Get list of visual items
-        val itemList = mutableListOf(
-            Pair(EquipmentSlot.MAINHAND, CraftItemStack.asNMSCopy(npc.bukkitEntity.inventory.itemInMainHand)),
-            Pair(EquipmentSlot.OFFHAND, CraftItemStack.asNMSCopy(npc.bukkitEntity.inventory.itemInMainHand))
-        )
-
-        npc.bukkitEntity.inventory.helmet?.let { itemList.add(Pair(EquipmentSlot.HEAD, CraftItemStack.asNMSCopy(it))) }
-        npc.bukkitEntity.inventory.chestplate?.let { itemList.add(Pair(EquipmentSlot.CHEST, CraftItemStack.asNMSCopy(it))) }
-        npc.bukkitEntity.inventory.leggings?.let { itemList.add(Pair(EquipmentSlot.LEGS, CraftItemStack.asNMSCopy(it))) }
-        npc.bukkitEntity.inventory.boots?.let { itemList.add(Pair(EquipmentSlot.FEET, CraftItemStack.asNMSCopy(it))) }
-
-        // Send packets to players to add, rotate, skin and equip NPC
-        npc.server.playerList.broadcastAll(ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, npc), npc)
-        npc.server.playerList.broadcastAll(ClientboundAddEntityPacket(npc)) //npc.server.playerList.broadcastAll(ClientboundAddPlayerPacket(npc))
-        npc.server.playerList.broadcastAll(ClientboundRotateHeadPacket(npc, ((npc.yRot%360)*256/360).toInt().toByte()))
-        npc.server.playerList.broadcastAll(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
-        npc.server.playerList.broadcastAll(ClientboundSetEquipmentPacket(npc.id, itemList))
-        npc.entityData.nonDefaultValues?.let { npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, it)) }
     }
 
     // Straight out of DamageTypes.bootstrap(var0)
