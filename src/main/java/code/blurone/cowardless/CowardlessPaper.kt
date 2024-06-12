@@ -60,13 +60,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
             exemptedReasons.add(QuitReason.ERRONEOUS_STATE)
     }
 
-    override fun onDisable() {
-        // Plugin shutdown logic
-        // Remove NPCs
-        for (npc: ServerPlayer in fakePlayerByName.values)
-            removePlayerPackets(npc)
-    }
-
     @EventHandler(priority = EventPriority.MONITOR)
     fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent)
     {
@@ -164,7 +157,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
                 override fun run() {
                     if (shallLog) logger.info("${it.name}'s NPCoward has died.")
                     fakePlayerListUtil.removeFake(it)
-                    removePlayerPackets(it)
                 }
             }.runTaskLater(this, 20)
         }
@@ -269,7 +261,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
                 fakePlayerByName.remove(playerName)?.let {
                     if (shallLog) logger.info("${it.name}'s NPCoward has expired.")
                     fakePlayerListUtil.removeFake(it)
-                    removePlayerPackets(it)
+                    //removePlayerPackets(it)
                 }
             }
         }.runTaskLater(this, despawnTicksThreshold)
@@ -294,23 +286,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
         npc.server.playerList.broadcastAll(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
         npc.server.playerList.broadcastAll(ClientboundSetEquipmentPacket(npc.id, itemList))
         npc.entityData.nonDefaultValues?.let { npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, it)) }
-    }
-
-    private fun removePlayerPackets(npc: ServerPlayer)
-    {
-        // Remove NPC as player and entity
-        npc.serverLevel().let {
-            it.players().remove(npc)
-            it.removePlayerImmediately(npc, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED)
-        }
-
-        // Send packets to players to remove NPC
-        for (player: Player in Bukkit.getOnlinePlayers())
-        {
-            val ps: ServerGamePacketListenerImpl = (player as CraftPlayer).handle.connection
-            ps.send(ClientboundPlayerInfoRemovePacket(listOf(npc.uuid)))
-            ps.send(ClientboundRemoveEntitiesPacket(npc.id))
-        }
     }
 
     // Straight out of DamageTypes.bootstrap(var0)
