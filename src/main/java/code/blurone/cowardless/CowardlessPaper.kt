@@ -187,7 +187,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
                 // Set despawn task
                 setDespawnTask(event.player.name)
             }
-        }.runTaskLater(this, 0)
+        }.runTask(this)
     }
 
     @EventHandler
