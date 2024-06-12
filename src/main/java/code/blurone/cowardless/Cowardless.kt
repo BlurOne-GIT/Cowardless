@@ -51,13 +51,6 @@ class Cowardless : JavaPlugin(), Listener {
         fakePlayerListUtil = FakePlayerListUtil((server as CraftServer).handle, server as CraftServer)
     }
 
-    override fun onDisable() {
-        // Plugin shutdown logic
-        // Remove NPCs
-        for (npc: ServerPlayer in fakePlayerByName.values)
-            removePlayerPackets(npc)
-    }
-
     @EventHandler(priority = EventPriority.MONITOR)
     fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent)
     {
@@ -154,7 +147,6 @@ class Cowardless : JavaPlugin(), Listener {
                 override fun run() {
                     if (shallLog) logger.info("${it.name}'s NPCoward has died.")
                     fakePlayerListUtil.removeFake(it)
-                    removePlayerPackets(it)
                 }
             }.runTaskLater(this, 20)
         }
@@ -165,13 +157,14 @@ class Cowardless : JavaPlugin(), Listener {
     {
         if ((hurtByTickstamps.remove(event.player.name) ?: return) <= event.player.world.gameTime) return
 
+        val player = event.player
         object : BukkitRunnable(){
             override fun run() {
-                if (shallLog) logger.info("${event.player.name} is a COWARD!")
+                if (shallLog) logger.info("${player.name} is a COWARD!")
                 // Create and spawn NPC
-                fakePlayerByName[event.player.name] = spawnBody(event.player)
+                fakePlayerByName[player.name] = spawnBody(player)
                 // Set despawn task
-                setDespawnTask(event.player.name)
+                setDespawnTask(player.name)
             }
         }.runTask(this)
     }
@@ -188,14 +181,6 @@ class Cowardless : JavaPlugin(), Listener {
     {
         event.player.removeMetadata("NPCoward", this)
         event.player.removeMetadata("NPCGonnaBeHurt", this)
-
-        // Show NPCs to player
-        val ps: ServerGamePacketListenerImpl = (event.player as CraftPlayer).handle.connection
-        for (npc: ServerPlayer in fakePlayerByName.values)
-        {
-            ps.send(ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, npc))
-            ps.send(ClientboundAddEntityPacket(npc)) //ps.send(ClientboundAddPlayerPacket(npc))
-        }
     }
 
     private fun spawnBody(player: Player): ServerPlayer
@@ -209,6 +194,7 @@ class Cowardless : JavaPlugin(), Listener {
             profile.properties.put("textures", it)
         }
         val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile)
+        val playerName = player.name
         val serverNPC = object : ServerPlayer(server, level, profile, cookie.clientInformation) {
             override fun tick() {
                 connection.handleMovePlayer(ServerboundMovePlayerPacket.StatusOnly(onGround()))
@@ -220,15 +206,13 @@ class Cowardless : JavaPlugin(), Listener {
             override fun getUUID(): UUID {
                 val realUUID = super.getUUID()
 
-                if (!shallDisconnectOnUUID.remove(player.name))
+                if (!shallDisconnectOnUUID.remove(playerName))
                     return realUUID
 
-                if (shallLog) logger.info("${player.name}'s NPCoward has been replaced by the real player.")
+                if (shallLog) logger.info("${playerName}'s NPCoward has been replaced by the real player.")
 
-                despawnTaskTimers.remove(player.name)?.cancel()
-                fakePlayerByName.remove(player.name)?.let {
-                    fakePlayerListUtil.removeFake(it)
-                }
+                despawnTaskTimers.remove(playerName)?.cancel()
+                fakePlayerByName.remove(playerName)?.let(fakePlayerListUtil::removeFake)
                 return UUID(0L, if (realUUID.leastSignificantBits != 0L) 0L else 1L) // Don't return same UUID
             }
         }
@@ -240,8 +224,6 @@ class Cowardless : JavaPlugin(), Listener {
         serverNPC.spawnInvulnerableTime = 0
         serverNPC.uuid = player.uniqueId
         serverNPC.bukkitPickUpLoot = false
-
-        addPlayerPackets(serverNPC)
 
         return serverNPC
     }
@@ -255,48 +237,9 @@ class Cowardless : JavaPlugin(), Listener {
                 fakePlayerByName.remove(playerName)?.let {
                     if (shallLog) logger.info("${it.name}'s NPCoward has expired.")
                     fakePlayerListUtil.removeFake(it)
-                    removePlayerPackets(it)
                 }
             }
         }.runTaskLater(this, despawnTicksThreshold)
-    }
-
-    private fun addPlayerPackets(npc: ServerPlayer)
-    {
-        // Get list of visual items
-        val itemList = mutableListOf(
-            npc.bukkitEntity.inventory.itemInMainHand.let { com.mojang.datafixers.util.Pair(EquipmentSlot.MAINHAND, CraftItemStack.asNMSCopy(it)) },
-            npc.bukkitEntity.inventory.itemInOffHand.let { com.mojang.datafixers.util.Pair(EquipmentSlot.OFFHAND, CraftItemStack.asNMSCopy(it)) }
-        )
-        npc.bukkitEntity.inventory.helmet?.let { itemList.add(com.mojang.datafixers.util.Pair(EquipmentSlot.HEAD, CraftItemStack.asNMSCopy(it))) }
-        npc.bukkitEntity.inventory.chestplate?.let { itemList.add(com.mojang.datafixers.util.Pair(EquipmentSlot.CHEST, CraftItemStack.asNMSCopy(it))) }
-        npc.bukkitEntity.inventory.leggings?.let { itemList.add(com.mojang.datafixers.util.Pair(EquipmentSlot.LEGS, CraftItemStack.asNMSCopy(it))) }
-        npc.bukkitEntity.inventory.boots?.let { itemList.add(com.mojang.datafixers.util.Pair(EquipmentSlot.FEET, CraftItemStack.asNMSCopy(it))) }
-
-        // Send packets to players to add, rotate, skin and equip NPC
-        npc.server.playerList.broadcastAll(ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, npc), npc)
-        npc.server.playerList.broadcastAll(ClientboundAddEntityPacket(npc)) //npc.server.playerList.broadcastAll(ClientboundAddPlayerPacket(npc))
-        npc.server.playerList.broadcastAll(ClientboundRotateHeadPacket(npc, ((npc.yRot%360)*256/360).toInt().toByte()))
-        npc.server.playerList.broadcastAll(ClientboundMoveEntityPacket.Rot(npc.id, ((npc.yRot%360)*256/360).toInt().toByte(), ((npc.xRot%360)*256/360).toInt().toByte(), npc.onGround))
-        npc.server.playerList.broadcastAll(ClientboundSetEquipmentPacket(npc.id, itemList))
-        npc.server.playerList.broadcastAll(ClientboundSetEntityDataPacket(npc.id, npc.entityData.nonDefaultValues))
-    }
-
-    private fun removePlayerPackets(npc: ServerPlayer)
-    {
-        // Remove NPC as player and entity
-        npc.serverLevel().let {
-            it.players().remove(npc)
-            it.removePlayerImmediately(npc, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED)
-        }
-
-        // Send packets to players to remove NPC
-        for (player: Player in Bukkit.getOnlinePlayers())
-        {
-            val ps: ServerGamePacketListenerImpl = (player as CraftPlayer).handle.connection
-            ps.send(ClientboundPlayerInfoRemovePacket(listOf(npc.uuid)))
-            ps.send(ClientboundRemoveEntitiesPacket(npc.id))
-        }
     }
 
     // Straight out of DamageTypes.bootstrap(var0)
