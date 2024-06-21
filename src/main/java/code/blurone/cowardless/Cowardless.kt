@@ -1,12 +1,10 @@
 package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
-import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
 import org.bukkit.Bukkit
-import org.bukkit.craftbukkit.v1_20_R3.CraftServer
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -24,6 +22,7 @@ import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
+import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.util.*
 
 @Suppress("unused")
@@ -40,7 +39,7 @@ class Cowardless : JavaPlugin(), Listener {
     private val redWarning = config.getBoolean("red_warning", false)
     private val redUnwarnTasks: MutableMap<String, BukkitTask> = mutableMapOf()
     private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
-    private lateinit var fakePlayerListUtil : FakePlayerListUtil
+    //private lateinit var fakePlayerListUtil : FakePlayerListUtil
 
     override fun onEnable() {
         // Plugin startup logic
@@ -48,31 +47,26 @@ class Cowardless : JavaPlugin(), Listener {
         // Register plugin events
         server.pluginManager.registerEvents(this, this)
 
-        fakePlayerListUtil = FakePlayerListUtil((server as CraftServer).handle, server as CraftServer)
+        //fakePlayerListUtil = FakePlayerListUtil((server as CraftServer).handle, server as CraftServer)
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent)
-    {
+    fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent) {
         if (event.entity.hasMetadata("NPCoward") && event.damager is Player)
             shallCancelVelocityEvent.add(event.entity.name)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    fun onNpcVelocityCanceler(event: PlayerVelocityEvent)
-    {
+    fun onNpcVelocityCanceler(event: PlayerVelocityEvent) {
         if (shallCancelVelocityEvent.remove(event.player.name))
             event.isCancelled = true
     }
 
     @EventHandler
-    fun onDamage(event: EntityDamageEvent)
-    {
+    fun onDamage(event: EntityDamageEvent) {
         val player = event.entity as? Player ?: return
-        if (player.hasMetadata("NPCoward"))
-        {
-            if (resetDespawnThreshold && player.health != 0.0)
-            {
+        if (player.hasMetadata("NPCoward")) {
+            if (resetDespawnThreshold && player.health != 0.0) {
                 // Reset despawn timer
                 despawnTaskTimers[player.name]?.cancel()
                 setDespawnTask(player.name)
@@ -80,8 +74,7 @@ class Cowardless : JavaPlugin(), Listener {
             return
         }
 
-        val inTicks = when (event.cause)
-        {
+        val inTicks = when (event.cause) {
             // Constant damage
             DamageCause.CONTACT,
             DamageCause.DRAGON_BREATH,
@@ -129,8 +122,7 @@ class Cowardless : JavaPlugin(), Listener {
     }
 
     @EventHandler(priority = EventPriority.LOW)
-    fun onDead(event: PlayerDeathEvent)
-    {
+    fun onDead(event: PlayerDeathEvent) {
         // Get rid of the timestamp
         hurtByTickstamps.remove(event.entity.name)
         redUnwarnTasks.remove(event.entity.name)?.cancel()
@@ -146,15 +138,15 @@ class Cowardless : JavaPlugin(), Listener {
             {
                 override fun run() {
                     if (shallLog) logger.info("${it.name}'s NPCoward has died.")
-                    fakePlayerListUtil.removeFake(it)
+                    //fakePlayerListUtil.removeFake(it)
+                    removeFake(it)
                 }
             }.runTaskLater(this, 20)
         }
     }
 
     @EventHandler
-    fun onLeave(event: PlayerQuitEvent)
-    {
+    fun onLeave(event: PlayerQuitEvent) {
         if ((hurtByTickstamps.remove(event.player.name) ?: return) <= event.player.world.gameTime) return
 
         val player = event.player
@@ -170,21 +162,18 @@ class Cowardless : JavaPlugin(), Listener {
     }
 
     @EventHandler
-    fun onPreLogin(event: AsyncPlayerPreLoginEvent)
-    {
+    fun onPreLogin(event: AsyncPlayerPreLoginEvent) {
         if (fakePlayerByName.containsKey(event.name))
             shallDisconnectOnUUID.add(event.name)
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    fun onJoin(event: PlayerJoinEvent)
-    {
+    fun onJoin(event: PlayerJoinEvent) {
         event.player.removeMetadata("NPCoward", this)
         event.player.removeMetadata("NPCGonnaBeHurt", this)
     }
 
-    private fun spawnBody(player: Player): ServerPlayer
-    {
+    private fun spawnBody(player: Player): ServerPlayer {
         // Create NPC
         val serverPlayer = (player as CraftPlayer).handle
         val server = serverPlayer.server
@@ -194,8 +183,9 @@ class Cowardless : JavaPlugin(), Listener {
             profile.properties.put("textures", it)
         }
         val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile)
+        val clientInfo = cookie.clientInformation
         val playerName = player.name
-        val serverNPC = object : ServerPlayer(server, level, profile, cookie.clientInformation) {
+        val serverNPC = object : ServerPlayer(server, level, profile, clientInfo) {
             override fun tick() {
                 connection.handleMovePlayer(ServerboundMovePlayerPacket.StatusOnly(onGround()))
                 doCheckFallDamage(deltaMovement.x, deltaMovement.y, deltaMovement.z, onGround())
@@ -212,14 +202,38 @@ class Cowardless : JavaPlugin(), Listener {
                 if (shallLog) logger.info("${playerName}'s NPCoward has been replaced by the real player.")
 
                 despawnTaskTimers.remove(playerName)?.cancel()
-                fakePlayerByName.remove(playerName)?.let(fakePlayerListUtil::removeFake)
+                //fakePlayerByName.remove(playerName)?.let(fakePlayerListUtil::removeFake)
+                fakePlayerByName.remove(playerName)?.let(::removeFake)
                 return UUID(0L, if (realUUID.leastSignificantBits != 0L) 0L else 1L) // Don't return same UUID
             }
         }
         // Identifier
         serverNPC.bukkitEntity.setMetadata("NPCoward", FixedMetadataValue(this, true))
         // Place NPC
-        fakePlayerListUtil.placeNewFakePlayer(FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
+        val psleHandlerList = PlayerSpawnLocationEvent.getHandlerList()
+        val oldPsleListeners = psleHandlerList.registeredListeners
+        for (listener in oldPsleListeners)
+            psleHandlerList.unregister(listener)
+
+        val pjeHandlerList = PlayerJoinEvent.getHandlerList()
+        val oldPjeListeners = pjeHandlerList.registeredListeners
+        for (listener in oldPjeListeners)
+            pjeHandlerList.unregister(listener)
+
+        val silencer = SilentPlayerJoinListener()
+        this.server.pluginManager.registerEvents(silencer, this)
+
+        //fakePlayerListUtil.placeNewFakePlayer(FakeConnection(PacketFlow.CLIENTBOUND), serverNPC, cookie)
+        val connection = FakeConnection()
+        server.playerList.placeNewPlayer(connection, serverNPC, cookie)
+
+        pjeHandlerList.unregister(silencer)
+
+        psleHandlerList.registerAll(oldPsleListeners.toList())
+        pjeHandlerList.registerAll(oldPjeListeners.toList())
+
+        FakeSGPLI(this, server, connection, serverNPC, cookie)
+
         serverNPC.entityData.assignValues(player.handle.entityData.nonDefaultValues)
         serverNPC.spawnInvulnerableTime = 0
         serverNPC.uuid = player.uniqueId
@@ -228,17 +242,32 @@ class Cowardless : JavaPlugin(), Listener {
         return serverNPC
     }
 
-    private fun setDespawnTask(playerName: String)
-    {
+    private fun setDespawnTask(playerName: String) {
         // Set despawn task to remove NPC and update player position and health when joining again
-        despawnTaskTimers[playerName] = object : BukkitRunnable()
-        {
+        despawnTaskTimers[playerName] = object : BukkitRunnable() {
             override fun run() {
                 fakePlayerByName.remove(playerName)?.let {
                     if (shallLog) logger.info("${it.name}'s NPCoward has expired.")
-                    fakePlayerListUtil.removeFake(it)
+                    //fakePlayerListUtil.removeFake(it)
+                    removeFake(it)
                 }
             }
         }.runTaskLater(this, despawnTicksThreshold)
+    }
+
+    private fun removeFake(entityplayer: ServerPlayer) {
+        val pqeHandlerList = PlayerQuitEvent.getHandlerList()
+        val oldPqeListeners = pqeHandlerList.registeredListeners
+        for (listener in oldPqeListeners)
+            pqeHandlerList.unregister(listener)
+
+        val silencer = SilentPlayerQuitListener()
+        server.pluginManager.registerEvents(silencer, this)
+
+        entityplayer.server.playerList.remove(entityplayer)
+
+        pqeHandlerList.unregister(silencer)
+
+        pqeHandlerList.registerAll(oldPqeListeners.toList())
     }
 }
