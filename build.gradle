@@ -50,7 +50,7 @@ processResources {
     }
 }
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(targetJavaVersion)
 }
 
 tasks.assemble {
