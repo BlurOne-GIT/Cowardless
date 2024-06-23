@@ -1,4 +1,4 @@
-package code.blurone.cowardless
+package code.blurone.cowardless.nms.v1_20_R3
 
 import io.netty.channel.ChannelHandler
 import io.netty.channel.embedded.EmbeddedChannel

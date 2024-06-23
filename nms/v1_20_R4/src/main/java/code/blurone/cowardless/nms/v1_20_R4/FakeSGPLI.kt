@@ -1,5 +1,6 @@
-package code.blurone.cowardless
+package code.blurone.cowardless.nms.v1_20_R4
 
+import code.blurone.cowardless.nms.common.SilentPlayerQuitListener
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer

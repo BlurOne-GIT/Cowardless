@@ -1,4 +1,4 @@
-package code.blurone.cowardless
+package code.blurone.cowardless.nms.common
 
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
