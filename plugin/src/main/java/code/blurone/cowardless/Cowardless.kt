@@ -114,6 +114,7 @@ class Cowardless : JavaPlugin(), Listener {
 
         // Remove the NPC if present
         NonPlayableCoward.byName[event.entity.name]?.let {
+            it.remainingTicks = -1L
             object : BukkitRunnable() {
                 override fun run() = it.remove("${it.name}'s NPCoward has died.")
             }.runTaskLater(this, 20)
@@ -127,6 +128,7 @@ class Cowardless : JavaPlugin(), Listener {
         val player = event.player
         object : BukkitRunnable() {
             override fun run() {
+                if (player.isOnline) return
                 logger.info("${player.name} is a COWARD!")
                 // Create and spawn NPC
                 spawnNpc(player)
