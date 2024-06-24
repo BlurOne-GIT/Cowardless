@@ -1,7 +1,7 @@
 package code.blurone.cowardless.nms.v1_20_R3
 
 import code.blurone.cowardless.nms.common.Common
-import code.blurone.cowardless.nms.common.ServerNpc
+import code.blurone.cowardless.nms.common.NonPlayableCoward
 import code.blurone.cowardless.nms.common.SilentPlayerJoinListener
 import com.mojang.authlib.GameProfile
 import net.minecraft.server.network.CommonListenerCookie
@@ -12,7 +12,7 @@ import org.bukkit.plugin.Plugin
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 
 class CommonImpl(plugin: Plugin, despawnTicksThreshold: Long) : Common(plugin, despawnTicksThreshold) {
-    override fun spawnBody(player: Player): ServerNpc {
+    override fun spawnBody(player: Player): NonPlayableCoward {
         // Create NPC
         val serverPlayer = (player as CraftPlayer).handle
         val server = serverPlayer.server
@@ -22,7 +22,7 @@ class CommonImpl(plugin: Plugin, despawnTicksThreshold: Long) : Common(plugin, d
             profile.properties.put("textures", it)
         }
         val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile)
-        val serverNPC = ServerNpcImpl(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
+        val serverNPC = ServerNpc(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
         // Place NPC
         val psleHandlerList = PlayerSpawnLocationEvent.getHandlerList()
         val oldPsleListeners = psleHandlerList.registeredListeners

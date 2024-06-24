@@ -12,10 +12,10 @@ import org.bukkit.plugin.Plugin
 
 class FakeSGPLI(
     private val plugin: Plugin,
-    minecraftserver: MinecraftServer?,
-    networkmanager: Connection?,
-    entityplayer: ServerPlayer?,
-    commonlistenercookie: CommonListenerCookie?
+    minecraftserver: MinecraftServer,
+    networkmanager: Connection,
+    entityplayer: ServerPlayer,
+    commonlistenercookie: CommonListenerCookie
 ) : ServerGamePacketListenerImpl(minecraftserver, networkmanager, entityplayer, commonlistenercookie) {
     override fun onDisconnect(ichatbasecomponent: Component?) {
         val pqeHandlerList = PlayerQuitEvent.getHandlerList()

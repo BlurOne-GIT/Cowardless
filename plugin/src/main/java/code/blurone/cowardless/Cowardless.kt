@@ -1,6 +1,6 @@
 package code.blurone.cowardless
 
-import code.blurone.cowardless.nms.common.ServerNpc
+import code.blurone.cowardless.nms.common.NonPlayableCoward
 import code.blurone.cowardless.nms.manager.getCommon
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -28,7 +28,7 @@ class Cowardless : JavaPlugin(), Listener {
     private val redWarning = config.getBoolean("red_warning", false)
     private val redUnwarnTasks: MutableMap<String, BukkitTask> = mutableMapOf()
     private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
-    private val common = getCommon(server.bukkitVersion)(this, despawnTicksThreshold)
+    private val spawnNpc = getCommon(server.bukkitVersion)(this, despawnTicksThreshold)::spawnBody
 
     override fun onEnable() {
         // Plugin startup logic
@@ -39,7 +39,7 @@ class Cowardless : JavaPlugin(), Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent) {
-        if (event.entity.name in ServerNpc.byName && event.damager is Player)
+        if (event.entity.name in NonPlayableCoward.byName && event.damager is Player)
             shallCancelVelocityEvent.add(event.entity.name)
     }
 
@@ -52,7 +52,7 @@ class Cowardless : JavaPlugin(), Listener {
     @EventHandler
     fun onDamage(event: EntityDamageEvent) {
         val player = event.entity as? Player ?: return
-        ServerNpc.byName[player.name]?.let {
+        NonPlayableCoward.byName[player.name]?.let {
             if (resetDespawnThreshold && player.health != .0)
                 it.remainingTicks = despawnTicksThreshold
             return
@@ -113,7 +113,7 @@ class Cowardless : JavaPlugin(), Listener {
         redUnwarnRunnables.remove(event.entity.name)?.run()
 
         // Remove the NPC if present
-        ServerNpc.byName[event.entity.name]?.let {
+        NonPlayableCoward.byName[event.entity.name]?.let {
             object : BukkitRunnable() {
                 override fun run() = it.remove("${it.name}'s NPCoward has died.")
             }.runTaskLater(this, 20)
@@ -129,13 +129,13 @@ class Cowardless : JavaPlugin(), Listener {
             override fun run() {
                 logger.info("${player.name} is a COWARD!")
                 // Create and spawn NPC
-                common.spawnBody(player)
+                spawnNpc(player)
             }
         }.runTask(this)
     }
 
     @EventHandler
     fun onPreLogin(event: AsyncPlayerPreLoginEvent) {
-        ServerNpc.byName[event.name]?.flagForRemoval()
+        NonPlayableCoward.byName[event.name]?.flagForRemoval()
     }
 }

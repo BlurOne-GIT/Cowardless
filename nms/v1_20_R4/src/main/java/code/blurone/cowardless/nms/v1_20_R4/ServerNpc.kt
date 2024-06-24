@@ -1,6 +1,6 @@
-package code.blurone.cowardless.nms.v1_20_R3
+package code.blurone.cowardless.nms.v1_20_R4
 
-import code.blurone.cowardless.nms.common.ServerNpc
+import code.blurone.cowardless.nms.common.NonPlayableCoward
 import code.blurone.cowardless.nms.common.SilentPlayerQuitListener
 import com.mojang.authlib.GameProfile
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
@@ -12,21 +12,21 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.Plugin
 import java.util.*
 
-class ServerNpcImpl(
+class ServerNpc(
     private val plugin: Plugin,
     override var remainingTicks: Long,
-    minecraftserver: MinecraftServer?,
-    worldserver: ServerLevel?,
-    gameprofile: GameProfile?,
-    clientinformation: ClientInformation?
-) : ServerPlayer(minecraftserver, worldserver, gameprofile, clientinformation), ServerNpc {
+    minecraftserver: MinecraftServer,
+    worldserver: ServerLevel,
+    gameprofile: GameProfile,
+    clientinformation: ClientInformation
+) : ServerPlayer(minecraftserver, worldserver, gameprofile, clientinformation), NonPlayableCoward {
     override val name: String
         get() = gameProfile.name
 
     private var isFlaggedForRemoval = false
 
     init {
-        ServerNpc.byName[name] = this
+        NonPlayableCoward.byName[name] = this
     }
 
     override fun flagForRemoval() {
@@ -34,7 +34,7 @@ class ServerNpcImpl(
     }
 
     override fun remove(logMessage: String) {
-        ServerNpc.byName.remove(name)
+        NonPlayableCoward.byName.remove(name)
         plugin.logger.info(logMessage)
         val pqeHandlerList = PlayerQuitEvent.getHandlerList()
         val oldPqeListeners = pqeHandlerList.registeredListeners

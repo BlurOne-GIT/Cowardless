@@ -1,8 +1,8 @@
 package code.blurone.cowardless.nms.common
 
-interface ServerNpc {
+interface NonPlayableCoward {
     companion object {
-        val byName: MutableMap<String, ServerNpc> = mutableMapOf()
+        val byName: MutableMap<String, NonPlayableCoward> = mutableMapOf()
     }
 
     val name: String
