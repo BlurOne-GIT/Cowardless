@@ -1,7 +1,7 @@
 package code.blurone.cowardless
 
 import net.minecraft.network.Connection
-import net.minecraft.network.chat.Component
+import net.minecraft.network.DisconnectionDetails
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
@@ -16,7 +16,7 @@ class FakeSGPLI(
     player: ServerPlayer,
     clientData: CommonListenerCookie
 ) : ServerGamePacketListenerImpl(server, connection, player, clientData) {
-    override fun onDisconnect(reason: Component, quitMessage: net.kyori.adventure.text.Component?) {
+    override fun onDisconnect(details: DisconnectionDetails, quitMessage: net.kyori.adventure.text.Component?) {
         val pqeHandlerList = PlayerQuitEvent.getHandlerList()
         val oldPqeListeners = pqeHandlerList.registeredListeners
         for (listener in oldPqeListeners)
@@ -25,7 +25,7 @@ class FakeSGPLI(
         val silencer = SilentPlayerQuitListener()
         plugin.server.pluginManager.registerEvents(silencer, plugin)
 
-        super.onDisconnect(reason, quitMessage)
+        super.onDisconnect(details, quitMessage)
 
         pqeHandlerList.unregister(silencer)
 
