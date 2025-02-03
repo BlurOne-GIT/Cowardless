@@ -1,0 +1,72 @@
+name: Bug report
+description: File a bug report.
+
+assignees: BlurOne-GIT
+labels: bug
+title: "[Bug]: "
+body:
+  - type: dropdown
+    id: server_software
+    attributes:
+      label: Server Software
+      options:
+        - Spigot
+        - Paper
+        - Paper fork
+    validations:
+      required: true
+
+  - type: input
+    id: minecraft_version
+    attributes:
+      label: Minecraft Version
+      placeholder: "1.21.4"
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      options:
+        - label: "I'm using the latest version of the plugin."
+          required: true
+        - label: "I'm using the version of the plugin for the software I'm using (e.g. Spigot for Spigot and Paper for Paper)
+          required: true
+        - label: "I'm using the plugin on a supported minecraft version."
+          required: true
+      label: Time saving checks
+      description: "Before going through and making the bug report, please check that these following statements hold true. If you don't know, please check!"
+
+# thanks Vesktop
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug.
+      description: A clear and concise description of what the bug is. Add screenshots or video if needed.
+      placeholder: The bug/crash happens sometimes when I do ..., when I expected ... to happen. I think it happens because of ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-take
+    attributes:
+      label: How do you recreate this bug or crash?
+      description: Make a list of steps in order to recreate the bug or crash.
+      placeholder: |
+        1. Do ...
+        2. Then ...
+        3. Do this ..., ... and then ...
+        4. Observe "the bug" or "the crash"
+    validations:
+      required: true
+
+  - type: textarea
+    id: console-logs
+    attributes:
+      label: Console Logs
+      description: "Check if there's any relevant log, warning or error messages in your server's console log."
+      value: |
+        ```
+        Replace this text with your logs. Do not remove the backticks!!
+        ```
+    validations:
+      required: false
