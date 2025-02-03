@@ -29,12 +29,12 @@ body:
       options:
         - label: "I'm using the latest version of the plugin."
           required: true
-        - label: "I'm using the version of the plugin for the software I'm using (e.g. Spigot for Spigot and Paper for Paper)
+        - label: "I'm using the version of the plugin for the software I'm using (e.g. Spigot for Spigot and Paper for Paper)"
           required: true
         - label: "I'm using the plugin on a supported minecraft version."
           required: true
       label: Time saving checks
-      description: "Before going through and making the bug report, please check that these following statements hold true. If you don't know, please check!"
+      description: "Before going through and filing the bug report, please check that these following statements hold true. If you don't know, please check!"
 
 # thanks Vesktop
   - type: textarea
