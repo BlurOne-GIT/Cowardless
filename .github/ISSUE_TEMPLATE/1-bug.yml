@@ -64,9 +64,7 @@ body:
     attributes:
       label: Console Logs
       description: "Check if there's any relevant log, warning or error messages in your server's console log."
-      value: |
-        ```
-        Replace this text with your logs. Do not remove the backticks!!
-        ```
+      placeholder: Paste your logs here if any.
+      render: shell
     validations:
       required: false
