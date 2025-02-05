@@ -17,6 +17,8 @@ class FakeSGPLI(
     clientData: CommonListenerCookie
 ) : ServerGamePacketListenerImpl(server, connection, player, clientData) {
     override fun onDisconnect(details: DisconnectionDetails, quitMessage: net.kyori.adventure.text.Component?) {
+        if (processedDisconnect) return
+
         val pqeHandlerList = PlayerQuitEvent.getHandlerList()
         val oldPqeListeners = pqeHandlerList.registeredListeners
         for (listener in oldPqeListeners)

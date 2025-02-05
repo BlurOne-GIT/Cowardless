@@ -46,14 +46,15 @@ class CowardlessPaper : JavaPlugin(), Listener {
 
         commandBlacklist.addAll(config.getStringList("command_blacklist"))
     }
-    
-    // TODO: check if fixed
+
+    // Fix ServerNpc no knockback
     @EventHandler(priority = EventPriority.MONITOR)
     fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent) {
         if (event.entity.name in ServerNpc.byName && event.damager is Player)
             shallCancelVelocityEvent.add(event.entity.name)
     }
 
+    // Fix ServerNpc no knockback
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onNpcVelocityCanceler(event: PlayerVelocityEvent) {
         if (shallCancelVelocityEvent.remove(event.player.name))

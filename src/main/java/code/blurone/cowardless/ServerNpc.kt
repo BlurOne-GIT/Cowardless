@@ -15,12 +15,12 @@ import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerKickEvent
-import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.Plugin
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
+import java.util.logging.Logger
 
 class ServerNpc(
-    private val plugin: Plugin,
+    private val logger: Logger,
     var remainingTicks: Long,
     server: MinecraftServer,
     world: ServerLevel,
@@ -43,7 +43,7 @@ class ServerNpc(
                 profile.properties.put("textures", it)
             }
             val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile, true)
-            val serverNPC = ServerNpc(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
+            val serverNPC = ServerNpc(plugin.logger, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
             // Place NPC
             val psleHandlerList = PlayerSpawnLocationEvent.getHandlerList()
             val oldPsleListeners = psleHandlerList.registeredListeners
@@ -88,14 +88,7 @@ class ServerNpc(
 
     fun remove(logMessage: String, async: Boolean) {
         byName.remove(name)
-        plugin.logger.info(logMessage)
-        val pqeHandlerList = PlayerQuitEvent.getHandlerList()
-        val oldPqeListeners = pqeHandlerList.registeredListeners
-        for (listener in oldPqeListeners)
-            pqeHandlerList.unregister(listener)
-
-        val silencer = SilentPlayerQuitListener()
-        plugin.server.pluginManager.registerEvents(silencer, plugin)
+        logger.info(logMessage)
 
         val disconnectionDetails = DisconnectionDetails(Component.literal("Cowardless"))
         val cause = PlayerKickEvent.Cause.PLUGIN
@@ -103,14 +96,9 @@ class ServerNpc(
             connection.disconnectAsync(disconnectionDetails, cause)
         else
             connection.disconnect(disconnectionDetails, cause)
-
-        pqeHandlerList.unregister(silencer)
-
-        pqeHandlerList.registerAll(oldPqeListeners.toList())
     }
 
     override fun tick() {
-        // TODO: check if this manual tick was fixed
         connection.handleMovePlayer(ServerboundMovePlayerPacket.StatusOnly(onGround(), true))
         doCheckFallDamage(deltaMovement.x, deltaMovement.y, deltaMovement.z, onGround())
         super.tick()
