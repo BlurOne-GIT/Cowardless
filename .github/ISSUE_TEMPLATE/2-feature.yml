@@ -10,7 +10,7 @@ body:
 
   - type: textarea
     id: feature
-    attribtes:
+    attributes:
       label: "The idea™"
       description: A clear and concise description of the feature you came up with.
       placeholder: My great idea for this plugin is ..., because of ...; and it can have ... customizability.
