@@ -70,26 +70,35 @@ class CowardlessPaper : JavaPlugin(), Listener {
             return
         }
 
-        // TODO: update list
+        // TODO: customizable maybe??
         val inTicks = when (event.cause) {
             // Constant damage
             DamageCause.CONTACT,
-            DamageCause.DRAGON_BREATH,
-            DamageCause.DROWNING,
+            DamageCause.SUFFOCATION,
             DamageCause.FIRE,
-            DamageCause.FREEZE,
-            DamageCause.HOT_FLOOR,
+            DamageCause.FIRE_TICK,
             DamageCause.LAVA,
-            DamageCause.SUFFOCATION -> if ((hurtByTickstamps[player.name] ?: 0L) > player.world.gameTime + 50L) pvpTicksThreshold else 40L
+            DamageCause.DROWNING,
+            DamageCause.VOID,
+            DamageCause.DRAGON_BREATH,
+            DamageCause.HOT_FLOOR,
+            DamageCause.CAMPFIRE,
+            DamageCause.CRAMMING,
+            DamageCause.FREEZE
+                -> if ((hurtByTickstamps[player.name] ?: 0L) > player.world.gameTime + 50L) pvpTicksThreshold else 40L
 
             // Pvp damage
             DamageCause.ENTITY_ATTACK,
-            DamageCause.ENTITY_EXPLOSION,
             DamageCause.ENTITY_SWEEP_ATTACK,
-            DamageCause.MAGIC,
             DamageCause.PROJECTILE,
-            DamageCause.SONIC_BOOM,
-            DamageCause.THORNS -> pvpTicksThreshold
+            DamageCause.BLOCK_EXPLOSION,
+            DamageCause.ENTITY_EXPLOSION,
+            DamageCause.POISON,
+            DamageCause.MAGIC,
+            DamageCause.WITHER,
+            DamageCause.THORNS,
+            DamageCause.SONIC_BOOM
+                -> pvpTicksThreshold
 
             else -> return
         }
