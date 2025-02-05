@@ -1,7 +1,7 @@
 name: CowardlessPaper
 version: '${version}'
 main: code.blurone.cowardless.CowardlessPaper
-api-version: '1.21'
+api-version: '1.21.4'
 authors: [ "BlurOne!" ]
 description: Replaces players who log out during combat with an NPC to be killed instead.
 website: https://github.com/BlurOne-GIT/Cowardless
