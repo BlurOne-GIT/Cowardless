@@ -60,7 +60,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             event.isCancelled = true
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     fun onDamage(event: EntityDamageEvent) {
         val player = event.entity as? Player ?: return
 
