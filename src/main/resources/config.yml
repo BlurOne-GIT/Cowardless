@@ -6,9 +6,12 @@ despawn_seconds_threshold: 30
 reset_despawn_threshold: true
 # Whether to set the player's vignette red when it would spawn an NPC if disconnecting
 red_warning: false
-# Disable spawning NPCs when the player is kicked by an operator
+# Disable spawning NPCs when the player is kicked from the server
 exempt_kicked: true
 # Disable spawning NPCs when the player times out (e.g. connection failure or server freezing)
 exempt_timed_out: true
 # Disable spawning NPCs when the player is disconnected because of erroneous states (e.g. flying when disabled)
 exempt_erroneous_state: false
+# Blacklist commands from being run by the player when in pvp
+command_blacklist:
+  - "trigger"

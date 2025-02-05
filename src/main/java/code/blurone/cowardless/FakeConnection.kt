@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.PacketFlow
 import java.net.InetSocketAddress
 
 @ChannelHandler.Sharable
-class FakeConnection : Connection(PacketFlow.SERVERBOUND /*PacketFlow.CLIENTBOUND*/) {
+class FakeConnection : Connection(PacketFlow.SERVERBOUND) {
     init {
         EmbeddedChannel(this)
     }

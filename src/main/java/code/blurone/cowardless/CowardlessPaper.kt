@@ -1,13 +1,6 @@
 package code.blurone.cowardless
 
-import com.mojang.authlib.GameProfile
-import net.minecraft.network.DisconnectionDetails
-import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.chat.Component
-import net.minecraft.network.protocol.game.GameProtocols
-import net.minecraft.server.network.CommonListenerCookie
 import org.bukkit.Bukkit
-import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -16,12 +9,14 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.player.*
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent
+import org.bukkit.event.player.PlayerCommandPreprocessEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerQuitEvent.QuitReason
+import org.bukkit.event.player.PlayerVelocityEvent
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
-import org.spigotmc.event.player.PlayerSpawnLocationEvent
 
 @Suppress("unused")
 class CowardlessPaper : JavaPlugin(), Listener {
@@ -34,6 +29,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     private val redUnwarnTasks: MutableMap<String, BukkitTask> = mutableMapOf()
     private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
     private val exemptedReasons: MutableSet<QuitReason> = mutableSetOf()
+    private val commandBlacklist: MutableSet<String> = mutableSetOf()
 
     override fun onEnable() {
         // Plugin startup logic
@@ -47,8 +43,10 @@ class CowardlessPaper : JavaPlugin(), Listener {
             exemptedReasons.add(QuitReason.TIMED_OUT)
         if (config.getBoolean("exempt_erroneous_state", false))
             exemptedReasons.add(QuitReason.ERRONEOUS_STATE)
-    }
 
+        commandBlacklist.addAll(config.getStringList("command_blacklist"))
+    }
+    
     // TODO: check if fixed
     @EventHandler(priority = EventPriority.MONITOR)
     fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent) {
@@ -149,7 +147,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
                 if (player.isOnline) return
                 logger.info("${player.name} is a COWARD!")
                 // Create and spawn NPC
-                spawnBody(player)
+                ServerNpc.createNpc(this@CowardlessPaper, player, despawnTicksThreshold)
             }
         }.runTask(this)
     }
@@ -161,50 +159,12 @@ class CowardlessPaper : JavaPlugin(), Listener {
         )
     }
 
-    // TODO: attempt to move this to ServerNpc either as a constructor or a factory function
-    private fun spawnBody(player: Player): ServerNpc {
-        // Create NPC
-        val serverPlayer = (player as CraftPlayer).handle
-        val server = serverPlayer.server
-        val level = serverPlayer.serverLevel()
-        val profile = GameProfile(player.uniqueId, player.name)
-        player.profile.properties["textures"].firstOrNull()?.let {
-            profile.properties.put("textures", it)
-        }
-        val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile, true)
-        val serverNPC = ServerNpc(this, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
-        // Place NPC
-        val psleHandlerList = PlayerSpawnLocationEvent.getHandlerList()
-        val oldPsleListeners = psleHandlerList.registeredListeners
-        for (listener in oldPsleListeners)
-            psleHandlerList.unregister(listener)
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerCommandPreprocessEvent(event: PlayerCommandPreprocessEvent) {
+        if (event.player.name !in hurtByTickstamps) return
 
-        val pjeHandlerList = PlayerJoinEvent.getHandlerList()
-        val oldPjeListeners = pjeHandlerList.registeredListeners
-        for (listener in oldPjeListeners)
-            pjeHandlerList.unregister(listener)
-
-        val silencer = SilentPlayerJoinListener()
-        this.server.pluginManager.registerEvents(silencer, this)
-
-        val connection = FakeConnection()
-        server.playerList.placeNewPlayer(connection, serverNPC, cookie)
-
-        pjeHandlerList.unregister(silencer)
-
-        psleHandlerList.registerAll(oldPsleListeners.toList())
-        pjeHandlerList.registerAll(oldPjeListeners.toList())
-
-        connection.setupInboundProtocol(
-            GameProtocols.SERVERBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(server.registryAccess())),
-            FakeSGPLI(this, server, connection, serverNPC, cookie)
-        )
-
-        player.handle.entityData.nonDefaultValues?.let(serverNPC.entityData::assignValues)
-        serverNPC.invulnerableTime = 0
-        serverNPC.uuid = player.uniqueId
-        serverNPC.bukkitPickUpLoot = false
-
-        return serverNPC
+        val commandName = event.message.split(' ').first().removePrefix("/")
+        if (commandName in commandBlacklist)
+            event.isCancelled = true
     }
 }
