@@ -19,6 +19,9 @@ class FakeSGPLI(
     override fun onDisconnect(details: DisconnectionDetails, quitMessage: net.kyori.adventure.text.Component?) {
         if (processedDisconnect) return
 
+        if (!plugin.isEnabled)
+            return super.onDisconnect(details, quitMessage)
+
         val pqeHandlerList = PlayerQuitEvent.getHandlerList()
         val oldPqeListeners = pqeHandlerList.registeredListeners
         for (listener in oldPqeListeners)
