@@ -1,0 +1,18 @@
+name: Feature Request
+description: Request a cool new feature for the plugin.
+assignees: BlurOne-GIT
+labels: enhancement
+title: "[Feature Request] "
+body:
+  - type: markdown
+    attributes:
+      value: Do not submit version requests. Versions are supported as long as compatibility is not broken with the latest version.
+
+  - type: textarea
+    id: feature
+    attribtes:
+      label: "The idea™"
+      description: A clear and concise description of the feature you came up with.
+      placeholder: My great idea for this plugin is ..., because of ...; and it can have ... customizability.
+    validations:
+      required: true
