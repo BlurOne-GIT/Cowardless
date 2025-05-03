@@ -81,7 +81,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
             DamageCause.LAVA,
             DamageCause.DROWNING,
             DamageCause.VOID,
-            DamageCause.DRAGON_BREATH,
             DamageCause.HOT_FLOOR,
             DamageCause.CAMPFIRE,
             DamageCause.CRAMMING,

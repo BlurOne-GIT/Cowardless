@@ -66,9 +66,10 @@ class ServerNpc(
             psleHandlerList.registerAll(oldPsleListeners.toList())
             pjeHandlerList.registerAll(oldPjeListeners.toList())
 
+            val fakeSGPLI = FakeSGPLI(plugin, server, connection, serverNPC, cookie)
             connection.setupInboundProtocol(
-                GameProtocols.SERVERBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(server.registryAccess())),
-                FakeSGPLI(plugin, server, connection, serverNPC, cookie)
+                GameProtocols.SERVERBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(server.registryAccess()), fakeSGPLI),
+                fakeSGPLI,
             )
 
             serverPlayer.entityData.nonDefaultValues?.let(serverNPC.entityData::assignValues)

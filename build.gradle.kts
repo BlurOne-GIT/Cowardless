@@ -3,13 +3,13 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     java
-    kotlin("jvm") version "2.1.10"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.14"
-    id("com.gradleup.shadow") version "9.0.0-beta7"
+    kotlin("jvm") version "2.1.20"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
+    id("com.gradleup.shadow") version "9.0.0-beta13"
 }
 
 group = "code.blurone"
-version = "3.0.0-P0"
+version = "3.1.0-P0"
 
 repositories {
     maven {
@@ -19,9 +19,9 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib", "2.1.10"))
-    paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT")
-    shadow(kotlin("stdlib", "2.1.10"))
+    implementation(kotlin("stdlib", "2.1.20"))
+    paperweight.paperDevBundle("1.21.5-R0.1-SNAPSHOT")
+    shadow(kotlin("stdlib", "2.1.20"))
 }
 
 val shadowImplementation: Configuration by configurations.creating {
