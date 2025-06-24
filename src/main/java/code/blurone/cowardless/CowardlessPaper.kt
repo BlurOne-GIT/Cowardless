@@ -22,10 +22,11 @@ import org.bukkit.scheduler.BukkitTask
 class CowardlessPaper : JavaPlugin(), Listener {
     private val hurtByTickstamps: MutableMap<String, Long> = mutableMapOf()
     private val shallCancelVelocityEvent: MutableSet<String> = mutableSetOf()
-    private val pvpTicksThreshold = config.getLong("pvp_seconds_threshold", 30) * 20L
+    private val combatTicksThreshold = config.getLong("combat_seconds_threshold", 30) * 20L
     private val despawnTicksThreshold = config.getLong("despawn_seconds_threshold", 30) * 20L
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
     private val redWarning = config.getBoolean("red_warning", false)
+    private val pvpOnly = config.getBoolean("pvp_only", false)
     private val redUnwarnTasks: MutableMap<String, BukkitTask> = mutableMapOf()
     private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
     private val exemptedReasons: MutableSet<QuitReason> = mutableSetOf()
@@ -47,11 +48,19 @@ class CowardlessPaper : JavaPlugin(), Listener {
         commandBlacklist.addAll(config.getStringList("command_blacklist"))
     }
 
-    // Fix ServerNpc no knockback
     @EventHandler(priority = EventPriority.MONITOR)
     fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent) {
-        if (event.entity.name in ServerNpc.byName && event.damager is Player)
-            shallCancelVelocityEvent.add(event.entity.name)
+        val player = event.entity as? Player ?: return
+        val damagerIsPlayer = event.damager is Player
+        // Fix ServerNpc no knockback
+        if (player.name in ServerNpc.byName && damagerIsPlayer)
+        {
+            shallCancelVelocityEvent.add(player.name)
+            return
+        }
+
+        if (pvpOnly && damagerIsPlayer && player.name !in hurtByTickstamps)
+            damageHandler(player, event.cause)
     }
 
     // Fix ServerNpc no knockback
@@ -65,14 +74,19 @@ class CowardlessPaper : JavaPlugin(), Listener {
     fun onDamage(event: EntityDamageEvent) {
         val player = event.entity as? Player ?: return
 
+        // Reset timer for NPC
         ServerNpc.byName[event.entity.name]?.let {
             if (resetDespawnThreshold && player.health != 0.0)
                 it.remainingTicks = despawnTicksThreshold
             return
         }
 
-        // TODO: customizable maybe??
-        val inTicks = when (event.cause) {
+        if (!pvpOnly || player.name in hurtByTickstamps)
+            damageHandler(player, event.cause)
+    }
+
+    fun damageHandler(player: Player, cause: DamageCause) {
+        val inTicks = when (cause) {
             // Constant damage
             DamageCause.CONTACT,
             DamageCause.SUFFOCATION,
@@ -85,7 +99,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             DamageCause.CAMPFIRE,
             DamageCause.CRAMMING,
             DamageCause.FREEZE
-                -> if ((hurtByTickstamps[player.name] ?: 0L) > player.world.gameTime + 50L) pvpTicksThreshold else 40L
+                -> if ((hurtByTickstamps[player.name] ?: 0L) > player.world.gameTime + 50L) combatTicksThreshold else 40L
 
             // Pvp damage
             DamageCause.ENTITY_ATTACK,
@@ -98,7 +112,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             DamageCause.WITHER,
             DamageCause.THORNS,
             DamageCause.SONIC_BOOM
-                -> pvpTicksThreshold
+                -> combatTicksThreshold
 
             else -> return
         }

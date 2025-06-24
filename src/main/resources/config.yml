@@ -1,5 +1,8 @@
+# Just in case, here are the default configs: https://github.com/BlurOne-GIT/Cowardless/blob/paper/src/main/resources/config.yml
+# If set to true, this plugin's functionality will only apply to player vs player combat
+pvp_only: false
 # Time in seconds a player will spawn an NPC if leaving after being hit
-pvp_seconds_threshold: 30
+combat_seconds_threshold: 30
 # Time in seconds before the NPC despawns
 despawn_seconds_threshold: 30
 # If true, when being damaged, the despawn countdown will start over
