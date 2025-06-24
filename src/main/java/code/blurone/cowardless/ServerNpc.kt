@@ -36,8 +36,8 @@ class ServerNpc(
         fun createNpc(plugin: Plugin, player: Player, despawnTicksThreshold: Long): ServerNpc {
             // Create NPC
             val serverPlayer = (player as CraftPlayer).handle
-            val server = serverPlayer.server
-            val level = serverPlayer.serverLevel()
+            val level = serverPlayer.level()
+            val server = level.server
             val profile = GameProfile(player.uniqueId, player.name)
             player.profile.properties["textures"].firstOrNull()?.let {
                 profile.properties.put("textures", it)
