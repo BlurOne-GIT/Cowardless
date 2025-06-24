@@ -3,9 +3,9 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     java
-    kotlin("jvm") version "2.1.20"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
-    id("com.gradleup.shadow") version "9.0.0-beta13"
+    kotlin("jvm") version "2.2.0"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
+    id("com.gradleup.shadow") version "9.0.0-beta17"
 }
 
 group = "code.blurone"
@@ -19,9 +19,9 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib", "2.1.20"))
-    paperweight.paperDevBundle("1.21.5-R0.1-SNAPSHOT")
-    shadow(kotlin("stdlib", "2.1.20"))
+    implementation(kotlin("stdlib", "2.2.0"))
+    paperweight.paperDevBundle("1.21.6-R0.1-SNAPSHOT")
+    shadow(kotlin("stdlib", "2.2.0"))
 }
 
 val shadowImplementation: Configuration by configurations.creating {
@@ -47,7 +47,7 @@ java {
 kotlin {
     jvmToolchain(javaTargetVersion)
     compilerOptions {
-        apiVersion.set(KotlinVersion.KOTLIN_2_1)
+        apiVersion.set(KotlinVersion.KOTLIN_2_2)
         jvmTarget.set(JvmTarget.JVM_21)
     }
 }
