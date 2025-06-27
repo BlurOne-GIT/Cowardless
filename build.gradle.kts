@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "code.blurone"
-version = "3.0.1-P0"
+version = "3.1.0-P0"
 
 repositories {
     maven {
