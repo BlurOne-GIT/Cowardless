@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "code.blurone"
-version = "3.1.0-P0"
+version = "3.1.1-P0"
 
 repositories {
     maven {
@@ -20,7 +20,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib", "2.2.0"))
-    paperweight.paperDevBundle("1.21.6-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.21.7-R0.1-SNAPSHOT")
     shadow(kotlin("stdlib", "2.2.0"))
 }
 

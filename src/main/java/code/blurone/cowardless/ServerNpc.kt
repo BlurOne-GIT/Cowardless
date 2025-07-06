@@ -1,7 +1,6 @@
 package code.blurone.cowardless
 
 import com.mojang.authlib.GameProfile
-import net.minecraft.network.DisconnectionDetails
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.game.GameProtocols
@@ -91,12 +90,12 @@ class ServerNpc(
         byName.remove(name)
         logger.info(logMessage)
 
-        val disconnectionDetails = DisconnectionDetails(Component.literal("Cowardless"))
+        val reason = Component.literal("Cowardless")
         val cause = PlayerKickEvent.Cause.PLUGIN
         if (async)
-            connection.disconnectAsync(disconnectionDetails, cause)
+            connection.disconnectAsync(reason, cause)
         else
-            connection.disconnect(disconnectionDetails, cause)
+            connection.disconnect(reason, cause)
     }
 
     override fun tick() {
