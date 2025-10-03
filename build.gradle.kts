@@ -3,15 +3,16 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     java
-    kotlin("jvm") version "2.2.0"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
-    id("com.gradleup.shadow") version "9.0.0-beta17"
+    kotlin("jvm") version "2.2.20"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.18"
+    id("com.gradleup.shadow") version "9.2.1"
 }
 
 group = "code.blurone"
-version = "3.1.1-P0"
+version = "cvas"
 
 repositories {
+    mavenCentral()
     maven {
         name = "papermc-repo"
         url = uri("https://repo.papermc.io/repository/maven-public/")
@@ -19,9 +20,10 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib", "2.2.0"))
-    paperweight.paperDevBundle("1.21.7-R0.1-SNAPSHOT")
-    shadow(kotlin("stdlib", "2.2.0"))
+    implementation(kotlin("stdlib", "2.2.20"))
+    paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT")
+    compileOnly("dev.folia:folia-api:1.20.4-R0.1-SNAPSHOT")
+    shadow(kotlin("stdlib", "2.2.20"))
 }
 
 val shadowImplementation: Configuration by configurations.creating {
@@ -56,12 +58,14 @@ tasks.build {
     dependsOn("shadowJar")
 }
 
+/*
 tasks.jar {
     archiveClassifier.set("kotlinless")
     manifest {
         attributes["paperweight-mappings-namespace"] = "mojang"
     }
 }
+*/
 // if you have shadowJar configured
 tasks.shadowJar {
     manifest {
@@ -69,6 +73,6 @@ tasks.shadowJar {
     }
     minimize()
     archiveClassifier.set("")
-    enableRelocation = true
+    enableAutoRelocation = true
     relocationPrefix = "code.blurone.cowardless"
 }

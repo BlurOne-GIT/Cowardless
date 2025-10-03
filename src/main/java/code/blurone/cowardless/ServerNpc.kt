@@ -3,6 +3,7 @@ package code.blurone.cowardless
 import com.mojang.authlib.GameProfile
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.Component
+import net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket
 import net.minecraft.network.protocol.game.GameProtocols
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
 import net.minecraft.server.MinecraftServer
@@ -10,21 +11,23 @@ import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
+import net.minecraft.server.network.ServerConfigurationPacketListenerImpl
 import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerKickEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.Plugin
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
-import java.util.logging.Logger
 
 class ServerNpc(
-    private val logger: Logger,
+    private val plugin: Plugin,
     var remainingTicks: Long,
     server: MinecraftServer,
     world: ServerLevel,
     profile: GameProfile,
-    clientOptions: ClientInformation
+    clientOptions: ClientInformation,
+    private val isFolia: Boolean
 ) : ServerPlayer(server, world, profile, clientOptions) {
     val name: String
         get() = gameProfile.name
@@ -32,44 +35,52 @@ class ServerNpc(
     companion object {
         val byName: MutableMap<String, ServerNpc> = mutableMapOf()
 
-        fun createNpc(plugin: Plugin, player: Player, despawnTicksThreshold: Long): ServerNpc {
+        fun createNpc(plugin: Plugin, player: Player, despawnTicksThreshold: Long, isFolia: Boolean): ServerNpc {
             // Create NPC
             val serverPlayer = (player as CraftPlayer).handle
-            val level = serverPlayer.level()
+            val level = serverPlayer.serverLevel()
             val server = level.server
             val profile = GameProfile(player.uniqueId, player.name)
             player.profile.properties["textures"].firstOrNull()?.let {
                 profile.properties.put("textures", it)
             }
             val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile, true)
-            val serverNPC = ServerNpc(plugin.logger, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
+            val serverNPC = ServerNpc(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation, isFolia)
             // Place NPC
             val psleHandlerList = PlayerSpawnLocationEvent.getHandlerList()
             val oldPsleListeners = psleHandlerList.registeredListeners
-            for (listener in oldPsleListeners)
-                psleHandlerList.unregister(listener)
+            for (listener in oldPsleListeners) psleHandlerList.unregister(listener)
 
             val pjeHandlerList = PlayerJoinEvent.getHandlerList()
             val oldPjeListeners = pjeHandlerList.registeredListeners
-            for (listener in oldPjeListeners)
-                pjeHandlerList.unregister(listener)
+            for (listener in oldPjeListeners) pjeHandlerList.unregister(listener)
 
-            val silencer = SilentPlayerJoinListener()
-            plugin.server.pluginManager.registerEvents(silencer, plugin)
+            val pjeSilencer = SilentPlayerJoinListener(plugin, oldPjeListeners)//if (isFolia) oldPjeListeners else null)
+            plugin.server.pluginManager.registerEvents(pjeSilencer, plugin)
 
             val connection = FakeConnection()
-            server.playerList.placeNewPlayer(connection, serverNPC, cookie)
+            val scpli = ServerConfigurationPacketListenerImpl(server, connection, cookie, serverNPC)
+            scpli.returnToWorld()
+            ServerboundFinishConfigurationPacket.INSTANCE.handle(scpli)
 
-            pjeHandlerList.unregister(silencer)
+            //server.playerList.placeNewPlayer(connection, serverNPC, cookie)
 
             psleHandlerList.registerAll(oldPsleListeners.toList())
-            pjeHandlerList.registerAll(oldPjeListeners.toList())
 
-            val fakeSGPLI = FakeSGPLI(plugin, server, connection, serverNPC, cookie)
-            connection.setupInboundProtocol(
-                GameProtocols.SERVERBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(server.registryAccess()), fakeSGPLI),
-                fakeSGPLI,
-            )
+            /*if (!isFolia) {
+                pjeHandlerList.unregister(silencer)
+
+                pjeHandlerList.registerAll(oldPjeListeners.toList())
+            } else {*/
+            if (isFolia) {
+                serverNPC.bukkitEntity.scheduler.run(plugin, {
+                    val foliaSGPLI = FoliaSGPLI(server, connection, serverNPC, cookie)
+                    connection.setupInboundProtocol(
+                        GameProtocols.SERVERBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(server.registryAccess())),
+                        foliaSGPLI
+                    )
+                }, null)
+            }
 
             serverPlayer.entityData.nonDefaultValues?.let(serverNPC.entityData::assignValues)
             serverNPC.invulnerableTime = 0
@@ -88,7 +99,21 @@ class ServerNpc(
 
     fun remove(logMessage: String, async: Boolean) {
         byName.remove(name)
-        logger.info(logMessage)
+        plugin.logger.info(logMessage)
+
+        val pqeHandlerList = PlayerQuitEvent.getHandlerList()
+        val oldPqeListeners = pqeHandlerList.registeredListeners
+        for (listener in oldPqeListeners) pqeHandlerList.unregister(listener)
+
+        val pkeHandleList = PlayerKickEvent.getHandlerList()
+        val oldPkeListeners = pkeHandleList.registeredListeners
+        for (listener in oldPkeListeners) pkeHandleList.unregister(listener)
+
+        val pqeSilencer = SilentPlayerQuitListener(plugin, oldPqeListeners)
+        plugin.server.pluginManager.registerEvents(pqeSilencer, plugin)
+
+        val pkeSilencer = SilentPlayerKickListener(plugin, oldPkeListeners)
+        plugin.server.pluginManager.registerEvents(pkeSilencer, plugin)
 
         val reason = Component.literal("Cowardless")
         val cause = PlayerKickEvent.Cause.PLUGIN
@@ -98,9 +123,10 @@ class ServerNpc(
             connection.disconnect(reason, cause)
     }
 
+    override fun isControlledByClient(): Boolean = false
+
     override fun tick() {
         connection.handleMovePlayer(ServerboundMovePlayerPacket.StatusOnly(onGround(), true))
-        doCheckFallDamage(deltaMovement.x, deltaMovement.y, deltaMovement.z, onGround())
         super.tick()
         doTick()
         if (remainingTicks-- == 0L)
