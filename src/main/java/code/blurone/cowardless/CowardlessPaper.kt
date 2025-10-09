@@ -18,7 +18,6 @@ import org.bukkit.event.player.*
 import org.bukkit.event.player.PlayerQuitEvent.QuitReason
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
-import org.bukkit.scheduler.BukkitTask
 import java.io.File
 import java.util.*
 
@@ -34,7 +33,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
     private val actionBar = config.getBoolean("action_bar", true)
     private val chatMessages = config.getBoolean("chat_message", true)
     private val actionBarRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
-    private val redUnwarnBukkitTasks: MutableMap<String, BukkitTask> = mutableMapOf()
     private val redUnwarnScheduledTasks: MutableMap<String, ScheduledTask> = mutableMapOf()
     private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
     private val exemptedReasons: MutableSet<QuitReason> = mutableSetOf()
@@ -105,7 +103,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     }
 
     // Fix ServerNpc no knockback
-    // TODO: check if this is still a problem in newer versions
+    // TODO: check if this is still a problem in versions newer than 1.21.4
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onNpcVelocityCanceler(event: PlayerVelocityEvent) {
         if (shallCancelVelocityEvent.remove(event.player.name))
@@ -184,10 +182,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     }
 
     fun addRedWarning(player: Player, ticks: Long) {
-        if (isFolia)
-            redUnwarnScheduledTasks.remove(player.name)?.cancel()
-        else
-            redUnwarnBukkitTasks.remove(player.name)?.cancel()
+        redUnwarnScheduledTasks.remove(player.name)?.cancel()
 
         redUnwarnRunnables.remove(player.name)?.run()
         val oldWorldBorder = player.worldBorder ?: run {
@@ -204,22 +199,16 @@ class CowardlessPaper : JavaPlugin(), Listener {
         }
         redUnwarnRunnables[player.name] = runnable
 
-        if (isFolia)
-            player.scheduler.runDelayed(this, { runnable.run() }, runnable, ticks)?.let {
-                redUnwarnScheduledTasks[player.name] = it
-            }
-        else
-            redUnwarnBukkitTasks[player.name] = runnable.runTaskLater(this, ticks)
+        player.scheduler.runDelayed(this, { runnable.run() }, runnable, ticks)?.let {
+            redUnwarnScheduledTasks[player.name] = it
+        }
     }
 
     @EventHandler(priority = EventPriority.LOW)
     fun onDead(event: PlayerDeathEvent) {
         // Get rid of the timestamp
         hurtByTickstamps.remove(event.entity.name)
-        if (isFolia)
-            redUnwarnScheduledTasks.remove(event.entity.name)?.cancel()
-        else
-            redUnwarnBukkitTasks.remove(event.entity.name)?.cancel()
+        redUnwarnScheduledTasks.remove(event.entity.name)?.cancel()
         redUnwarnRunnables.remove(event.entity.name)?.run()
         actionBarRunnables.remove(event.entity.name)?.cancel()
 
@@ -270,7 +259,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     @EventHandler
     fun onJoin(event: PlayerJoinEvent) {
         hurtByTickstamps[event.player.name]?.let { hurtByTickstamp ->
-            // TODO: Maybe setCombatTicks even if retired for the case it leaves again before this is executed??
+            // TODO: Maybe setCombatTicks even if retired in case it leaves again before this is executed??
             event.player.scheduler.run(this, {setCombatTicks(event.player, hurtByTickstamp)}, null)
         }
     }
