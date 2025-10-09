@@ -229,10 +229,10 @@ class CowardlessPaper : JavaPlugin(), Listener {
                 override fun run() = it.remove("${it.name}'s NPCoward has died.", event.isAsynchronous)
             }
 
-            if (isFolia)
+            //if (isFolia)
                 event.entity.scheduler.execute(this, runnable, null, 20L)
-            else
-                runnable.runTaskLater(this, 20L)
+            //else
+            //    runnable.runTaskLater(this, 20L)
 
         }
     }
