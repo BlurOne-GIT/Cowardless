@@ -239,7 +239,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
 
     @EventHandler
     fun onLeave(event: PlayerQuitEvent) {
-        logger.info("${event.player.name} leaving ${hurtByTickstamps[event.player.name]}")
         if (
             (hurtByTickstamps.remove(event.player.name) ?: return) <= event.player.world.gameTime ||
             event.reason in exemptedReasons
@@ -247,25 +246,34 @@ class CowardlessPaper : JavaPlugin(), Listener {
 
         val player = event.player
 
+        /*
         val runnable = object : BukkitRunnable() {
             override fun run() {
+                logger.info("${player.isOnline}")
                 if (player.isOnline) return
                 logger.info("${player.name} is a COWARD!")
                 // Create and spawn NPC
                 ServerNpc.createNpc(this@CowardlessPaper, player, despawnTicksThreshold, isFolia)
+                cancel()
             }
-        }
+        }*/
 
-        if (isFolia)
-            server.globalRegionScheduler.execute(this, runnable)
-        else
-            runnable.runTask(this)
+        //if (isFolia)
+            server.globalRegionScheduler.runAtFixedRate(this, { task ->
+                if (player.isOnline) return@runAtFixedRate
+                if (!chatMessages)
+                    logger.info("${player.name} is a COWARD!")
+                // Create and spawn NPC
+                ServerNpc.createNpc(this@CowardlessPaper, player, despawnTicksThreshold, isFolia)
+                task.cancel()
+            }, 1L, 1L)
+        //else
+            //runnable.runTask(this)
     }
 
     @EventHandler
     fun onPreLogin(event: AsyncPlayerPreLoginEvent) {
         ServerNpc.byName[event.name]?.let {
-            logger.info("Setting hurtByTickstamp ${it.remainingTicks}")
             hurtByTickstamps[event.name] = combatTicksThreshold
             it.remove(
                 "${event.name}'s NPCoward has been replaced by the real player.", true
