@@ -108,6 +108,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     }
 
     // Fix ServerNpc no knockback
+    // TODO: check if this is still a problem in newer versions
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onNpcVelocityCanceler(event: PlayerVelocityEvent) {
         if (shallCancelVelocityEvent.remove(event.player.name))
@@ -224,16 +225,16 @@ class CowardlessPaper : JavaPlugin(), Listener {
 
         // Remove the NPC if present
         ServerNpc.byName[event.entity.name]?.let {
+            // Prevent removal from timer reaching 0
             it.remainingTicks = -1L
-            val runnable = object : BukkitRunnable() {
-                override fun run() = it.remove("${it.name}'s NPCoward has died.", event.isAsynchronous)
-            }
-
-            //if (isFolia)
-                event.entity.scheduler.execute(this, runnable, null, 20L)
-            //else
-            //    runnable.runTaskLater(this, 20L)
-
+            /*
+            The good thing about using this scheduler is that there won't be a race condition if the player rejoins in
+            the second where the npc is waiting for the above runnable to be called, since it won't be executed if the
+            entity has been retired.
+            */
+            event.entity.scheduler.runDelayed(this, { _ ->
+                it.remove("${it.name}'s NPCoward has died.", event.isAsynchronous)
+            }, null, 20L)
         }
     }
 
@@ -246,29 +247,14 @@ class CowardlessPaper : JavaPlugin(), Listener {
 
         val player = event.player
 
-        /*
-        val runnable = object : BukkitRunnable() {
-            override fun run() {
-                logger.info("${player.isOnline}")
-                if (player.isOnline) return
+        server.globalRegionScheduler.runAtFixedRate(this, { task ->
+            if (player.isOnline) return@runAtFixedRate
+            if (!chatMessages)
                 logger.info("${player.name} is a COWARD!")
-                // Create and spawn NPC
-                ServerNpc.createNpc(this@CowardlessPaper, player, despawnTicksThreshold, isFolia)
-                cancel()
-            }
-        }*/
-
-        //if (isFolia)
-            server.globalRegionScheduler.runAtFixedRate(this, { task ->
-                if (player.isOnline) return@runAtFixedRate
-                if (!chatMessages)
-                    logger.info("${player.name} is a COWARD!")
-                // Create and spawn NPC
-                ServerNpc.createNpc(this@CowardlessPaper, player, despawnTicksThreshold, isFolia)
-                task.cancel()
-            }, 1L, 1L)
-        //else
-            //runnable.runTask(this)
+            // Create and spawn NPC
+            ServerNpc.createNpc(this@CowardlessPaper, player, despawnTicksThreshold, isFolia)
+            task.cancel()
+        }, 1L, 1L)
     }
 
     @EventHandler
@@ -284,9 +270,8 @@ class CowardlessPaper : JavaPlugin(), Listener {
     @EventHandler
     fun onJoin(event: PlayerJoinEvent) {
         hurtByTickstamps[event.player.name]?.let { hurtByTickstamp ->
+            // TODO: Maybe setCombatTicks even if retired for the case it leaves again before this is executed??
             event.player.scheduler.run(this, {setCombatTicks(event.player, hurtByTickstamp)}, null)
-            //logger.info("${event.player.name} $it")
-            //setCombatTicks(event.player, it)
         }
     }
 
