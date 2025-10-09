@@ -177,9 +177,12 @@ class CowardlessPaper : JavaPlugin(), Listener {
             if (isFolia)
                 runnable.task = player.scheduler.runAtFixedRate(this, {
                     runnable.run()
-                }, null, 1, 20L)
+                }, null, 20L, 20L)
             else
-                runnable.runTaskTimer(this, 0, 20L)
+                runnable.runTaskTimer(this, 20L, 20L)
+
+            // We set initial delays to 20 ticks and run first time now to avoid 1 tick dephasing with red warning tasks
+            runnable.run()
         }
     }
 

@@ -9,13 +9,13 @@ class ActionBarRunnable(private val player: Player, private var seconds: Long) :
     var task: ScheduledTask? = null
 
     override fun run() {
-        if (--seconds <= 0L || player.isDead) {
+        if (seconds <= 0L || player.isDead) {
             player.sendActionBar(Component.translatable("actionbar_end"))
             cancel()
             return
         }
 
-        player.sendActionBar(Component.translatable("actionbar_seconds", Component.text(seconds)))
+        player.sendActionBar(Component.translatable("actionbar_seconds", Component.text(seconds--)))
     }
 
     override fun cancel() {
