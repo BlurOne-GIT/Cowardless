@@ -216,7 +216,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         // Get rid of the timestamp
         hurtByTickstamps.remove(event.entity.name)
         if (isFolia)
-            redUnwarnScheduledTasks.remove(event.entity.name)
+            redUnwarnScheduledTasks.remove(event.entity.name)?.cancel()
         else
             redUnwarnBukkitTasks.remove(event.entity.name)?.cancel()
         redUnwarnRunnables.remove(event.entity.name)?.run()
