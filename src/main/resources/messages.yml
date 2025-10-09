@@ -1,0 +1,16 @@
+en:
+  actionbar_seconds: "In combat for {0} seconds"
+  actionbar_end: "You're no longer in combat"
+  chat_coward: "{0} is a COWARD"
+es:
+  actionbar_seconds: "En combate por {0} segundos"
+  actionbar_end: "Ya no estás en combate"
+  chat_coward: "{0} es COBARDE"
+pt:
+  actionbar_seconds: "Em combate por {0} segundos"
+  actionbar_end: "Você já não está mais em combate"
+  chat_coward: "{0} é COVARDE"
+tr:
+  actionbar_seconds: "Savaş halindesin. {0} saniye!"
+  actionbar_end: "Artık savaşta değilsin."
+  chat_coward: "{0} bir KORKAK"

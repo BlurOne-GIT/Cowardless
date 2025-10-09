@@ -1,7 +1,11 @@
 package code.blurone.cowardless
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.translation.GlobalTranslator
+import net.kyori.adventure.translation.TranslationStore
 import org.bukkit.Bukkit
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -10,15 +14,14 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent
-import org.bukkit.event.player.PlayerCommandPreprocessEvent
-import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.player.*
 import org.bukkit.event.player.PlayerQuitEvent.QuitReason
-import org.bukkit.event.player.PlayerVelocityEvent
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
+import java.io.File
+import java.text.MessageFormat
+import java.util.*
 
 @Suppress("unused")
 class CowardlessPaper : JavaPlugin(), Listener {
@@ -29,6 +32,9 @@ class CowardlessPaper : JavaPlugin(), Listener {
     private val resetDespawnThreshold = config.getBoolean("reset_despawn_threshold", true)
     private val redWarning = config.getBoolean("red_warning", false)
     private val pvpOnly = config.getBoolean("pvp_only", false)
+    private val actionBar = config.getBoolean("action_bar", true)
+    private val chatMessages = config.getBoolean("chat_message", true)
+    private val actionBarRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
     private val redUnwarnBukkitTasks: MutableMap<String, BukkitTask> = mutableMapOf()
     private val redUnwarnScheduledTasks: MutableMap<String, ScheduledTask> = mutableMapOf()
     private val redUnwarnRunnables: MutableMap<String, BukkitRunnable> = mutableMapOf()
@@ -57,6 +63,33 @@ class CowardlessPaper : JavaPlugin(), Listener {
             exemptedReasons.add(QuitReason.ERRONEOUS_STATE)
 
         commandBlacklist.addAll(config.getStringList("command_blacklist"))
+
+        if (actionBar || chatMessages)
+            server.asyncScheduler.runNow(this) { setupTranslations() }
+    }
+
+    fun setupTranslations() {
+        saveResource("messages.yml", false)
+        val file = File(dataFolder, "messages.yml")
+        val messages = YamlConfiguration.loadConfiguration(file)
+        val store = TranslationStore.messageFormat(Key.key( "cowardless:messages"))
+        val entries = messages.getKeys(false)
+        for (entry in entries) {
+            val localeSection = messages.getConfigurationSection(entry) ?: continue
+            val locales = Locale.getAvailableLocales().filter { locale ->
+                val tag = locale.toLanguageTag()
+                    tag == entry || tag.contains(Regex("^$entry")) && tag !in entries
+            }
+            for (locale in locales) {
+                store.registerAll(locale, localeSection.getKeys(false)) { key ->
+                    if (store.contains(key, locale))
+                        store.unregister(key)
+                    MessageFormat(localeSection.getString(key, "")!!)
+                }
+            }
+        }
+
+        GlobalTranslator.translator().addSource(store)
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -135,9 +168,21 @@ class CowardlessPaper : JavaPlugin(), Listener {
         // Set timestamp for cowards
         hurtByTickstamps[player.name] = player.world.gameTime + ticks
 
-        // Add red warning
-        if (!redWarning) return
+        if (redWarning) addRedWarning(player, ticks)
+        if (actionBar) {
+            actionBarRunnables.remove(player.name)?.cancel()
+            val runnable = ActionBarRunnable(player, ticks / 20L)
+            actionBarRunnables[player.name] = runnable
+            if (isFolia)
+                runnable.task = player.scheduler.runAtFixedRate(this, {
+                    runnable.run()
+                }, null, 1, 20L)
+            else
+                runnable.runTaskTimer(this, 0, 20L)
+        }
+    }
 
+    fun addRedWarning(player: Player, ticks: Long) {
         if (isFolia)
             redUnwarnScheduledTasks.remove(player.name)?.cancel()
         else
@@ -175,6 +220,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         else
             redUnwarnBukkitTasks.remove(event.entity.name)?.cancel()
         redUnwarnRunnables.remove(event.entity.name)?.run()
+        actionBarRunnables.remove(event.entity.name)?.cancel()
 
         // Remove the NPC if present
         ServerNpc.byName[event.entity.name]?.let {

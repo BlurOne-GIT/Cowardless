@@ -27,7 +27,6 @@ class ServerNpc(
     world: ServerLevel,
     profile: GameProfile,
     clientOptions: ClientInformation,
-    private val isFolia: Boolean
 ) : ServerPlayer(server, world, profile, clientOptions) {
     val name: String
         get() = gameProfile.name
@@ -45,7 +44,7 @@ class ServerNpc(
                 profile.properties.put("textures", it)
             }
             val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile, true)
-            val serverNPC = ServerNpc(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation, isFolia)
+            val serverNPC = ServerNpc(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
             // Place NPC
             val psleHandlerList = PlayerSpawnLocationEvent.getHandlerList()
             val oldPsleListeners = psleHandlerList.registeredListeners
@@ -55,7 +54,7 @@ class ServerNpc(
             val oldPjeListeners = pjeHandlerList.registeredListeners
             for (listener in oldPjeListeners) pjeHandlerList.unregister(listener)
 
-            val pjeSilencer = SilentPlayerJoinListener(plugin, oldPjeListeners)//if (isFolia) oldPjeListeners else null)
+            val pjeSilencer = SilentPlayerJoinListener(oldPjeListeners, plugin.config.getBoolean("chat_message", true))//if (isFolia) oldPjeListeners else null)
             plugin.server.pluginManager.registerEvents(pjeSilencer, plugin)
 
             val connection = FakeConnection()
@@ -109,10 +108,10 @@ class ServerNpc(
         val oldPkeListeners = pkeHandleList.registeredListeners
         for (listener in oldPkeListeners) pkeHandleList.unregister(listener)
 
-        val pqeSilencer = SilentPlayerQuitListener(plugin, oldPqeListeners)
+        val pqeSilencer = SilentPlayerQuitListener(oldPqeListeners)
         plugin.server.pluginManager.registerEvents(pqeSilencer, plugin)
 
-        val pkeSilencer = SilentPlayerKickListener(plugin, oldPkeListeners)
+        val pkeSilencer = SilentPlayerKickListener(oldPkeListeners)
         plugin.server.pluginManager.registerEvents(pkeSilencer, plugin)
 
         val reason = Component.literal("Cowardless")
