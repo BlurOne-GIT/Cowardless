@@ -238,7 +238,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerCommandPreprocessEvent(event: PlayerCommandPreprocessEvent) {
-        if (event.player.name !in hurtByTickstamps) return
+        if ((hurtByTickstamps[event.player.name] ?: return) > event.player.world.gameTime) return
 
         val commandName = event.message.split(' ').first().removePrefix("/")
         if (commandName in commandBlacklist)
