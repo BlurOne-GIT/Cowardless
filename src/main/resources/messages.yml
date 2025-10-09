@@ -1,16 +1,18 @@
+# These messages use MiniMessage for formatting.
+# You can live preview them at https://webui.advntr.dev/
 en:
-  actionbar_seconds: "In combat for {0} seconds"
+  actionbar_seconds: "In combat for <s> seconds"
   actionbar_end: "You're no longer in combat"
-  chat_coward: "{0} is a COWARD"
+  chat_coward: "<p> is a COWARD"
 es:
-  actionbar_seconds: "En combate por {0} segundos"
+  actionbar_seconds: "En combate por <s> segundos"
   actionbar_end: "Ya no estás en combate"
-  chat_coward: "{0} es COBARDE"
+  chat_coward: "<p> es COBARDE"
 pt:
-  actionbar_seconds: "Em combate por {0} segundos"
+  actionbar_seconds: "Em combate por <s> segundos"
   actionbar_end: "Você já não está mais em combate"
-  chat_coward: "{0} é COVARDE"
+  chat_coward: "<p> é COVARDE"
 tr:
-  actionbar_seconds: "Savaş halindesin. {0} saniye!"
+  actionbar_seconds: "Savaş halindesin. <s> saniye!"
   actionbar_end: "Artık savaşta değilsin."
-  chat_coward: "{0} bir KORKAK"
+  chat_coward: "<p> bir KORKAK"

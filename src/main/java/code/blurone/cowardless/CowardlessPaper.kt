@@ -2,8 +2,8 @@ package code.blurone.cowardless
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import net.kyori.adventure.key.Key
+import net.kyori.adventure.text.minimessage.translation.MiniMessageTranslationStore
 import net.kyori.adventure.translation.GlobalTranslator
-import net.kyori.adventure.translation.TranslationStore
 import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
@@ -20,7 +20,6 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import java.io.File
-import java.text.MessageFormat
 import java.util.*
 
 @Suppress("unused")
@@ -72,7 +71,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         saveResource("messages.yml", false)
         val file = File(dataFolder, "messages.yml")
         val messages = YamlConfiguration.loadConfiguration(file)
-        val store = TranslationStore.messageFormat(Key.key( "cowardless:messages"))
+        val store = MiniMessageTranslationStore.create(Key.key( "cowardless:messages"))
         val entries = messages.getKeys(false)
         for (entry in entries) {
             val localeSection = messages.getConfigurationSection(entry) ?: continue
@@ -82,9 +81,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             }
             for (locale in locales) {
                 store.registerAll(locale, localeSection.getKeys(false)) { key ->
-                    if (store.contains(key, locale))
-                        store.unregister(key)
-                    MessageFormat(localeSection.getString(key, "")!!)
+                    localeSection.getString(key, "")!!
                 }
             }
         }
