@@ -39,10 +39,7 @@ class ServerNpc(
             val serverPlayer = (player as CraftPlayer).handle
             val level = serverPlayer.serverLevel()
             val server = level.server
-            val profile = GameProfile(player.uniqueId, player.name)
-            player.profile.properties["textures"].firstOrNull()?.let {
-                profile.properties.put("textures", it)
-            }
+            val profile = player.profile
             val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile, true)
             val serverNPC = ServerNpc(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
             // Place NPC
@@ -54,7 +51,7 @@ class ServerNpc(
             val oldPjeListeners = pjeHandlerList.registeredListeners
             for (listener in oldPjeListeners) pjeHandlerList.unregister(listener)
 
-            val pjeSilencer = SilentPlayerJoinListener(oldPjeListeners, plugin.config.getBoolean("chat_message", true))//if (isFolia) oldPjeListeners else null)
+            val pjeSilencer = SilentPlayerJoinListener(oldPjeListeners, plugin.config.getBoolean("chat_message", true))
             plugin.server.pluginManager.registerEvents(pjeSilencer, plugin)
 
             val connection = FakeConnection()
@@ -66,11 +63,6 @@ class ServerNpc(
 
             psleHandlerList.registerAll(oldPsleListeners.toList())
 
-            /*if (!isFolia) {
-                pjeHandlerList.unregister(silencer)
-
-                pjeHandlerList.registerAll(oldPjeListeners.toList())
-            } else {*/
             if (isFolia) {
                 serverNPC.bukkitEntity.scheduler.run(plugin, {
                     val foliaSGPLI = FoliaSGPLI(server, connection, serverNPC, cookie)
