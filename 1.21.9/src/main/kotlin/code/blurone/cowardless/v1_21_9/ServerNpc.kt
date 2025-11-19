@@ -2,11 +2,7 @@
 
 package code.blurone.cowardless.v1_21_9
 
-import code.blurone.cowardless.Coward
-import code.blurone.cowardless.CowardFactory
-import code.blurone.cowardless.SilentPlayerJoinListener
-import code.blurone.cowardless.SilentPlayerKickListener
-import code.blurone.cowardless.SilentPlayerQuitListener
+import code.blurone.cowardless.*
 import com.mojang.authlib.GameProfile
 import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent
 import net.minecraft.network.RegistryFriendlyByteBuf
@@ -65,7 +61,7 @@ class ServerNpc(
             val pjeSilencer = SilentPlayerJoinListener(oldPjeListeners, plugin.config.getBoolean("chat_message", true))
             plugin.server.pluginManager.registerEvents(pjeSilencer, plugin)
 
-            val connection = FakeConnection()
+            val connection = FakeConnection(serverNPC)
             val scpli = ServerConfigurationPacketListenerImpl(server, connection, cookie)
             scpli.returnToWorld()
             while (scpli.currentTask is PrepareSpawnTask) {

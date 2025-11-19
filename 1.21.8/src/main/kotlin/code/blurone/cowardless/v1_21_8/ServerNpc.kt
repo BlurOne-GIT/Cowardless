@@ -57,7 +57,7 @@ class ServerNpc(
             val pjeSilencer = SilentPlayerJoinListener(oldPjeListeners, plugin.config.getBoolean("chat_message", true))
             plugin.server.pluginManager.registerEvents(pjeSilencer, plugin)
 
-            val connection = FakeConnection()
+            val connection = FakeConnection(serverNPC)
             val scpli = ServerConfigurationPacketListenerImpl(server, connection, cookie)
             scpli.returnToWorld()
             ServerboundFinishConfigurationPacket.INSTANCE.handle(scpli)

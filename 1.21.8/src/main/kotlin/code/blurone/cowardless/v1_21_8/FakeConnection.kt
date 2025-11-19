@@ -7,9 +7,10 @@ import net.minecraft.network.protocol.PacketFlow
 import java.net.InetSocketAddress
 
 @ChannelHandler.Sharable
-class FakeConnection : Connection(PacketFlow.SERVERBOUND) {
+class FakeConnection(npc: ServerNpc) : Connection(PacketFlow.SERVERBOUND) {
     init {
         EmbeddedChannel(this)
+        savedPlayerForLoginEventLegacy = npc
     }
 
     override fun handleDisconnection() {
