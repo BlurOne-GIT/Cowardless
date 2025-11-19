@@ -10,7 +10,7 @@ plugins {
 
 allprojects {
     group = "code.blurone"
-    version = "4.0.0-P0-SNAPSHOT"
+    version = "4.0.0-P0"
 
     repositories {
         mavenCentral()
@@ -67,24 +67,5 @@ kotlin {
 }
 
 tasks.build {
-    dependsOn("shadowJar")
-}
-
-/*
-tasks.jar {
-    archiveClassifier.set("kotlinless")
-    manifest {
-        attributes["paperweight-mappings-namespace"] = "mojang"
-    }
-}
-*/
-// if you have shadowJar configured
-tasks.shadowJar {
-    manifest {
-        attributes["paperweight-mappings-namespace"] = "mojang"
-    }
-    minimize()
-    archiveClassifier.set("")
-    enableAutoRelocation = true
-    relocationPrefix = "code.blurone.cowardless"
+    dependsOn(":plugin:shadowJar")
 }
