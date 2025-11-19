@@ -1,0 +1,8 @@
+name: CowardlessPaper
+version: '${version}'
+main: code.blurone.cowardless.CowardlessPaper
+api-version: '1.20.1'
+authors: [ "BlurOne!" ]
+description: Replaces players who log out during combat with an NPC to be killed instead.
+website: https://github.com/BlurOne-GIT/Cowardless
+folia-supported: true
