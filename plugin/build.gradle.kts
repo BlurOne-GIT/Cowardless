@@ -4,38 +4,21 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 plugins {
     java
     kotlin("jvm") version "2.2.20"
-    //id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
     id("com.gradleup.shadow") version "9.2.1"
 }
 
-allprojects {
-    group = "code.blurone"
-    version = "4.0.0-P0-SNAPSHOT"
-
-    repositories {
-        mavenCentral()
-        maven {
-            name = "papermc-repo"
-            url = uri("https://repo.papermc.io/repository/maven-public/")
-        }
-    }
-
-    /*dependencies {
-        implementation(kotlin("stdlib", "2.2.20"))
-    }*/
-}
-
 dependencies {
+    implementation(kotlin("stdlib", "2.2.20"))
+    // Using implementation of adventure to have version 4.20 api on versions older than 1.21.4
+    implementation("net.kyori:adventure-api:4.25.0")
+    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
     implementation(project(":core"))
-    implementation(project(":plugin"))
     implementation(project(":1.21.1"))
     implementation(project(":1.21.4"))
     implementation(project(":1.21.5"))
     implementation(project(":1.21.8"))
     implementation(project(":1.21.9"))
     shadow(kotlin("stdlib", "2.2.20"))
-    //paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT")
-    //compileOnly("dev.folia:folia-api:1.20.4-R0.1-SNAPSHOT")
 }
 
 val shadowImplementation: Configuration by configurations.creating {
@@ -85,6 +68,15 @@ tasks.shadowJar {
     }
     minimize()
     archiveClassifier.set("")
-    enableAutoRelocation = true
-    relocationPrefix = "code.blurone.cowardless"
+    enableAutoRelocation = false
+
+    relocate("kotlin", "code.blurone.cowardless.shaded.kotlin") {
+        exclude("code/blurone/cowardless/**")
+    }
+
+    /* relocate("net.kyori.adventure", "code.blurone.cowardless.shaded.adventure") {
+        exclude("code/blurone/cowardless/**")
+    } */*/
+    //exclude("code/blurone/cowardless/**")
+    //relocationPrefix = "code.blurone.cowardless.shaded"
 }
