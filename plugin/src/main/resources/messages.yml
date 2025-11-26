@@ -1,5 +1,6 @@
 # These messages use MiniMessage for formatting.
 # You can live preview them at https://webui.advntr.dev/
+default: "en"
 en:
   actionbar_seconds: "In combat for <s> seconds"
   actionbar_end: "You're no longer in combat"
