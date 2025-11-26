@@ -52,7 +52,7 @@ class ServerNpc(
 
             val apsleHandlerList = AsyncPlayerSpawnLocationEvent.getHandlerList()
             val oldApsleListeners = apsleHandlerList.registeredListeners
-            for (listener in oldApsleListeners) psleHandlerList.unregister(listener)
+            for (listener in oldApsleListeners) apsleHandlerList.unregister(listener)
 
             val pjeHandlerList = PlayerJoinEvent.getHandlerList()
             val oldPjeListeners = pjeHandlerList.registeredListeners
