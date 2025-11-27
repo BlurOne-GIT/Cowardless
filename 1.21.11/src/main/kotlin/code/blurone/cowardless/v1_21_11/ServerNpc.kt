@@ -87,7 +87,6 @@ class ServerNpc(
                         GameProtocols.SERVERBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(server.registryAccess()), foliaSGPLI),
                         foliaSGPLI
                     )
-                    foliaSGPLI.handleAcceptPlayerLoad(ServerboundPlayerLoadedPacket())
                 }, null)
             }
 

@@ -10,7 +10,7 @@ plugins {
 
 allprojects {
     group = "code.blurone"
-    version = "4.0.0-P0"
+    version = "4.1.0-P0"
 
     repositories {
         mavenCentral()
