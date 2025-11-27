@@ -91,16 +91,26 @@ class CowardlessPaper : JavaPlugin(), Listener {
         }
         val messages = YamlConfiguration.loadConfiguration(file)
         val store = MiniMessageTranslationStore.create(Key.key( "cowardless:messages"))
+
+        val defaultLang = messages.getString("default", "en")
+        messages.getConfigurationSection(defaultLang ?: "en")?.let { defaultSection ->
+            store.registerAll(Locale.ROOT, defaultSection.getKeys(false)) { key ->
+                defaultSection.getString(key)!!
+            }
+        }
+
         val entries = messages.getKeys(false)
         for (entry in entries) {
+            if (entry == "default") continue
+
             val localeSection = messages.getConfigurationSection(entry) ?: continue
             val locales = Locale.getAvailableLocales().filter { locale ->
                 val tag = locale.toLanguageTag()
-                    tag == entry || tag.contains(Regex("^$entry")) && tag !in entries
+                    tag == entry || tag.startsWith(entry) && tag !in entries
             }
             for (locale in locales) {
                 store.registerAll(locale, localeSection.getKeys(false)) { key ->
-                    localeSection.getString(key, "")!!
+                    localeSection.getString(key)!!
                 }
             }
         }

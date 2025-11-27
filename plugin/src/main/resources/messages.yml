@@ -1,9 +1,14 @@
 # These messages use MiniMessage for formatting.
 # You can live preview them at https://webui.advntr.dev/
+default: "en"
 en:
   actionbar_seconds: "In combat for <s> seconds"
   actionbar_end: "You're no longer in combat"
   chat_coward: "<p> is a COWARD"
+ru:
+  actionbar_seconds: "Ты в битве на <s> секунд"
+  actionbar_end: "Ты больше не в битве"
+  chat_coward: "<p> - ТРУС"
 es:
   actionbar_seconds: "En combate por <s> segundos"
   actionbar_end: "Ya no estás en combate"
