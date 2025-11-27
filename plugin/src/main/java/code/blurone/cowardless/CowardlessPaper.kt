@@ -131,7 +131,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             return
         }
 
-        if (damagerIsPlayer && event.finalDamage > 0) {
+        if (damagerIsPlayer && event.damage > 0) {
             if (pvpOnly && player.name !in hurtByTickstamps) damageHandler(player, event.cause)
 
             if (twoSided) damageHandler(event.damager as Player, event.cause)
@@ -148,7 +148,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onDamage(event: EntityDamageEvent) {
         val player = event.entity as? Player ?: return
-        if (event.finalDamage <= 0) return
+        if (event.damage <= 0) return
 
         // Reset timer for NPC
         Coward.byName[event.entity.name]?.let {
