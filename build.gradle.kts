@@ -3,9 +3,9 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     java
-    kotlin("jvm") version "2.2.20"
+    kotlin("jvm") version "2.2.21"
     //id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
-    id("com.gradleup.shadow") version "9.2.1"
+    id("com.gradleup.shadow") version "9.2.2"
 }
 
 allprojects {
@@ -33,7 +33,7 @@ dependencies {
     implementation(project(":1.21.5"))
     implementation(project(":1.21.8"))
     implementation(project(":1.21.9"))
-    shadow(kotlin("stdlib", "2.2.20"))
+    shadow(kotlin("stdlib", "2.2.21"))
     //paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT")
     //compileOnly("dev.folia:folia-api:1.20.4-R0.1-SNAPSHOT")
 }
