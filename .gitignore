@@ -29,3 +29,5 @@ target/
 */build
 /.gradle
 */.gradle
+
+!gradle/wrapper/gradle-wrapper.jar
