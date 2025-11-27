@@ -44,8 +44,10 @@ class ServerNpc(
             val server = level.server
             val profile = player.profile
             val cookie: CommonListenerCookie = CommonListenerCookie.createInitial(profile, true)
+            // Instantiate ServerNpc
             val serverNPC = ServerNpc(plugin, despawnTicksThreshold, server, level, profile, cookie.clientInformation)
-            // Place NPC
+
+            // Hijack events
             val psleHandlerList = PlayerSpawnLocationEvent.getHandlerList()
             val oldPsleListeners = psleHandlerList.registeredListeners
             for (listener in oldPsleListeners) psleHandlerList.unregister(listener)
@@ -58,6 +60,7 @@ class ServerNpc(
             val oldPjeListeners = pjeHandlerList.registeredListeners
             for (listener in oldPjeListeners) pjeHandlerList.unregister(listener)
 
+            // This events auto unhijacks itself
             val pjeSilencer = SilentPlayerJoinListener(oldPjeListeners, plugin.config.getBoolean("chat_message", true))
             plugin.server.pluginManager.registerEvents(pjeSilencer, plugin)
 
@@ -67,14 +70,16 @@ class ServerNpc(
             while (scpli.currentTask is PrepareSpawnTask) {
                 scpli.tick()
             }
-            ServerboundFinishConfigurationPacket.INSTANCE.handle(scpli)
+            // Place NPC (this ends up in PlayerList.placeNewPlayer and assigns ServerPlayer.connection to an instance of SGPLI)
+            scpli.handleConfigurationFinished(ServerboundFinishConfigurationPacket.INSTANCE)
 
-            //server.playerList.placeNewPlayer(connection, serverNPC, cookie)
-
+            // Unhijack events
             psleHandlerList.registerAll(oldPsleListeners.toList())
             apsleHandlerList.registerAll(oldApsleListeners.toList())
 
             if (isFolia) {
+                // On folia, calling handleConfigurationFinished doesn't call PlayerList.placeNewPlayer right away
+                // It waits for the main thread to execute it, so to hijack the SGPLI we need to schedule a task
                 serverNPC.bukkitEntity.scheduler.run(plugin, {
                     val foliaSGPLI = FoliaSGPLI(server, connection, serverNPC, cookie)
                     connection.setupInboundProtocol(
@@ -85,10 +90,7 @@ class ServerNpc(
             }
 
             serverPlayer.entityData.nonDefaultValues?.let(serverNPC.entityData::assignValues)
-            serverNPC.invulnerableTime = 0
-            serverNPC.isInvulnerable = false
             serverNPC.setClientLoaded(true)
-            serverNPC.uuid = player.uniqueId
             serverNPC.bukkitPickUpLoot = false
 
             return serverNPC

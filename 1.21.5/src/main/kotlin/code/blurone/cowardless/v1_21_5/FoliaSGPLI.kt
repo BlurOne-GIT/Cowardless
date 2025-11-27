@@ -12,6 +12,7 @@ class FoliaSGPLI(
     player: ServerPlayer,
     clientData: CommonListenerCookie
 ) : ServerGamePacketListenerImpl(server, connection, player, clientData) {
+    // This function is for some reason called in Folia and not in Paper, which makes Folia tick the player twice
     override fun tick() {
         return
     }
