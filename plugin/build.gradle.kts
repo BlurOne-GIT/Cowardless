@@ -18,7 +18,8 @@ dependencies {
     implementation(project(":1.21.5"))
     implementation(project(":1.21.8"))
     implementation(project(":1.21.9"))
-    shadow(kotlin("stdlib", "2.2.20"))
+    implementation(project(":1.21.11"))
+    shadow(kotlin("stdlib", "2.2.21"))
 }
 
 val shadowImplementation: Configuration by configurations.creating {

@@ -50,7 +50,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         }
     }
     val factory: CowardFactory = run {
-        val versionStringParts = Bukkit.getMinecraftVersion().split('.', '-')
+        val versionStringParts = Bukkit.getMinecraftVersion().split('.', '-', ' ')
         val major = versionStringParts[1].toUInt()
         val minor = versionStringParts[2].toUInt()
 
@@ -59,7 +59,8 @@ class CowardlessPaper : JavaPlugin(), Listener {
             21u if minor == 4u -> code.blurone.cowardless.v1_21_4.ServerNpc
             21u if minor == 5u -> code.blurone.cowardless.v1_21_5.ServerNpc
             21u if minor in 6u..8u -> code.blurone.cowardless.v1_21_8.ServerNpc
-            21u if minor >= 9u -> code.blurone.cowardless.v1_21_9.ServerNpc
+            21u if minor in 9u..10u -> code.blurone.cowardless.v1_21_9.ServerNpc
+            21u if minor >= 11u -> code.blurone.cowardless.v1_21_11.ServerNpc
             else -> throw IllegalArgumentException("${Bukkit.getMinecraftVersion()} is not a supported version")
         }
     }
