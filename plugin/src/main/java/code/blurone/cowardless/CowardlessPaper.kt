@@ -7,6 +7,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.minimessage.translation.MiniMessageTranslationStore
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -49,7 +50,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         }
     }
     val factory: CowardFactory = run {
-        val versionStringParts = Bukkit.getMinecraftVersion().split('.')
+        val versionStringParts = Bukkit.getMinecraftVersion().split('.', '-')
         val major = versionStringParts[1].toUInt()
         val minor = versionStringParts[2].toUInt()
 
@@ -199,6 +200,8 @@ class CowardlessPaper : JavaPlugin(), Listener {
     }
 
     fun setCombatTicks(player: Player, ticks: Long) {
+        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
+
         // Set timestamp for cowards
         hurtByTickstamps[player.name] = player.world.gameTime + ticks
 
@@ -301,7 +304,21 @@ class CowardlessPaper : JavaPlugin(), Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onWorldChange(event: PlayerChangedWorldEvent) {
+        val remaining = (hurtByTickstamps[event.player.name] ?: return) - event.from.gameTime
+        if (remaining <= 0) {
+            hurtByTickstamps.remove(event.player.name)
+            return
+        }
+
+        hurtByTickstamps[event.player.name] = remaining + event.player.world.gameTime
+
+        if (redWarning)
+            addRedWarning(event.player, remaining)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onPlayerCommandPreprocessEvent(event: PlayerCommandPreprocessEvent) {
         if ((hurtByTickstamps[event.player.name] ?: return) <= event.player.world.gameTime) return
 
