@@ -20,9 +20,6 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import java.io.File
 import java.util.*
-import kotlin.collections.contains
-import kotlin.run
-import kotlin.text.contains
 
 @Suppress("unused")
 class CowardlessPaper : JavaPlugin(), Listener {
@@ -84,6 +81,11 @@ class CowardlessPaper : JavaPlugin(), Listener {
             server.asyncScheduler.runNow(this) { setupTranslations() }
     }
 
+    fun warnMissingTranslation(key: String, locale: String): String {
+        logger.warning("No $key translation found for $locale")
+        return key
+    }
+
     fun setupTranslations() {
         val file = File(dataFolder, "messages.yml")
         if (!file.exists()) {
@@ -92,10 +94,10 @@ class CowardlessPaper : JavaPlugin(), Listener {
         val messages = YamlConfiguration.loadConfiguration(file)
         val store = MiniMessageTranslationStore.create(Key.key( "cowardless:messages"))
 
-        val defaultLang = messages.getString("default", "en")
-        messages.getConfigurationSection(defaultLang ?: "en")?.let { defaultSection ->
+        val defaultLang = messages.getString("default", "en")!!
+        messages.getConfigurationSection(defaultLang)?.let { defaultSection ->
             store.registerAll(Locale.ROOT, defaultSection.getKeys(false)) { key ->
-                defaultSection.getString(key)!!
+                defaultSection.getString(key) ?: warnMissingTranslation(key, defaultLang)
             }
         }
 
@@ -110,7 +112,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
             }
             for (locale in locales) {
                 store.registerAll(locale, localeSection.getKeys(false)) { key ->
-                    localeSection.getString(key)!!
+                    localeSection.getString(key) ?: warnMissingTranslation(key, locale.toLanguageTag())
                 }
             }
         }
@@ -137,7 +139,6 @@ class CowardlessPaper : JavaPlugin(), Listener {
     }
 
     // Fix ServerNpc no knockback
-    // TODO: check if this is still a problem in versions newer than 1.21.4
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onNpcVelocityCanceler(event: PlayerVelocityEvent) {
         if (shallCancelVelocityEvent.remove(event.player.name))
