@@ -5,19 +5,24 @@ en:
   actionbar_seconds: "In combat for <s> seconds"
   actionbar_end: "You're no longer in combat"
   chat_coward: "<p> is a COWARD"
+  command_blocked: "You cannot use this command while in combat."
 ru:
   actionbar_seconds: "Ты в битве на <s> секунд"
   actionbar_end: "Ты больше не в битве"
   chat_coward: "<p> - ТРУС"
+# TODO: add Russian translation for command_blocked
 es:
   actionbar_seconds: "En combate por <s> segundos"
   actionbar_end: "Ya no estás en combate"
   chat_coward: "<p> es COBARDE"
+  command_blocked: "No puedes usar este comando mientras estás en combate."
 pt:
   actionbar_seconds: "Em combate por <s> segundos"
   actionbar_end: "Você já não está mais em combate"
   chat_coward: "<p> é COVARDE"
+  command_blocked: "Você não pode usar esse comando durante o combate."
 tr:
   actionbar_seconds: "Savaş halindesin. <s> saniye!"
   actionbar_end: "Artık savaşta değilsin."
   chat_coward: "<p> bir KORKAK"
+  command_blocked: "Savaş halindeyken bu komutu kullanamazsınız!"
