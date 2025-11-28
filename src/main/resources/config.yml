@@ -1,10 +1,20 @@
+# Just in case, here are the default configs: https://github.com/BlurOne-GIT/Cowardless/blob/spigot/src/main/resources/config.yml
+# If set to true, this plugin's functionality will only apply to player vs player combat
+pvp_only: false
+# Also make the attacker enter combat in PvP
+two_sided_pvp: true
 # Time in seconds a player will spawn an NPC if leaving after being hit
-pvp_seconds_threshold: 30
+combat_seconds_threshold: 30
 # Time in seconds before the NPC despawns
 despawn_seconds_threshold: 30
 # If true, when being damaged, the despawn countdown will start over
 reset_despawn_threshold: true
-# Whether to log when an NPC is spawned and despawned
-logger: false
-# Whether to set the player's vignette red when it would spawn an npc if disconnecting
+# Whether to set the player's vignette red when it would spawn an NPC if disconnecting
 red_warning: false
+# Whether to show a message in the action bar informing the time left in combat
+action_bar_message: true
+# Whether to send a chat message when a player disconnect mid-combat and is replaced by an NPC
+chat_message: true
+# Blacklist commands from being run by the player when in pvp
+command_blacklist:
+  - "trigger"
