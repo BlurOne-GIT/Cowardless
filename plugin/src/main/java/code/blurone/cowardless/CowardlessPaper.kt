@@ -246,7 +246,7 @@ class CowardlessPaper : JavaPlugin(), Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onDead(event: PlayerDeathEvent) {
         // Get rid of the timestamp
         hurtByTickstamps.remove(event.entity.name)
