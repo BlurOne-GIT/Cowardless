@@ -14,6 +14,7 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mannequin
+import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
 import org.bukkit.entity.model.PlayerModelPart
 import org.bukkit.event.EventHandler
@@ -23,6 +24,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.*
 import org.bukkit.inventory.EquipmentSlot
@@ -43,6 +45,7 @@ class Cowardless : JavaPlugin(), Listener {
     }
 
     private val cowardsByName: MutableMap<String, Mannequin> = mutableMapOf()
+    private val retargetableMobs: MutableMap<Mob, String> = mutableMapOf()
     private val hurtByTickstamps: MutableMap<String, Long> = mutableMapOf()
     private val combatTicksThreshold = config.getLong("combat_seconds_threshold", 30) * 20L
     private val despawnTicksThreshold = config.getInt("despawn_seconds_threshold", 30) * 20
@@ -275,6 +278,21 @@ class Cowardless : JavaPlugin(), Listener {
             task.cancel()
             createNpc(player, profile)
         }, 1L, 1L)
+
+
+        player.world.getEntitiesByClass(Mob::class.java).forEach {
+            if (it.target == player)
+                retargetableMobs[it] = player.name
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onTargetChange(event: EntityTargetLivingEntityEvent) {
+        if (event.target != null) return
+        val name = retargetableMobs.remove(event.entity) ?: return
+        val mannequin = cowardsByName[name]!!
+        event.target = mannequin
+        event.isCancelled = false
     }
 
     @EventHandler
