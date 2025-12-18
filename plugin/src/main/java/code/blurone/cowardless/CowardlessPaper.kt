@@ -135,11 +135,11 @@ class CowardlessPaper : JavaPlugin(), Listener {
             return
         }
 
-        if (damagerIsPlayer && event.damage > 0) {
-            if (pvpOnly && player.name !in hurtByTickstamps) damageHandler(player, event.cause)
+        if (!damagerIsPlayer || event.damage <= 0 || event.damager == event.entity) return
 
-            if (twoSided) damageHandler(event.damager as Player, event.cause)
-        }
+        if (pvpOnly && player.name !in hurtByTickstamps) damageHandler(player, event.cause)
+
+        if (twoSided) damageHandler(event.damager as Player, event.cause)
     }
 
     // Fix ServerNpc no knockback
