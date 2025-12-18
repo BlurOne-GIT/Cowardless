@@ -136,11 +136,11 @@ class Cowardless : JavaPlugin(), Listener {
     fun onNpcDamagedByPlayer(event: EntityDamageByEntityEvent) {
         val player = event.entity as? Player ?: return
 
-        if (event.damager is Player && event.damage > 0) {
-            if (pvpOnly && player.name !in hurtByTickstamps) damageHandler(player, event.cause)
+        if (event.damager !is Player || event.damage <= 0 || event.damager == event.entity) return
 
-            if (twoSided) damageHandler(event.damager as Player, event.cause)
-        }
+        if (pvpOnly && player.name !in hurtByTickstamps) damageHandler(player, event.cause)
+
+        if (twoSided) damageHandler(event.damager as Player, event.cause)
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
