@@ -10,7 +10,6 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket
 import net.minecraft.network.protocol.game.GameProtocols
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
-import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel

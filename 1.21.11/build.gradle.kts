@@ -7,5 +7,5 @@ plugins {
 dependencies {
     implementation(project(":core"))
     implementation(kotlin("stdlib", "2.2.21"))
-    paperweight.paperDevBundle("1.21.11-pre3-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
 }
